@@ -3,10 +3,14 @@
 :root {
   --ink: #151515;
   --muted: #6b7280;
-  --line: #d8ded2;
-  --paper: #fbfcf7;
-  --lime: #c7f943;
-  --green: #1f5f46;
+  --line: #d8dbe7;
+  --paper: #f7f8fb;
+  --brand-navy: #171b40;
+  --brand-lime: #a0ff00;
+  --brand-soft: #efffd9;
+  --metric: #fbfff4;
+  --lime: var(--brand-lime);
+  --green: var(--brand-navy);
   --red: #be3a34;
 }
 
@@ -26,6 +30,10 @@ body {
   font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+img {
+  display: block;
+}
+
 button,
 input,
 select {
@@ -35,6 +43,18 @@ select {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--green);
+  outline: 2px solid var(--brand-lime);
   outline-offset: 2px;
+}
+
+.brand-stripe {
+  height: 18px;
+  background-color: var(--brand-lime);
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--brand-navy) 0,
+    var(--brand-navy) 16px,
+    transparent 16px,
+    transparent 54px
+  );
 }
