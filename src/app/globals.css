@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #151515;
+  --muted: #6b7280;
+  --line: #d8ded2;
+  --paper: #fbfcf7;
+  --lime: #c7f943;
+  --green: #1f5f46;
+  --red: #be3a34;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
