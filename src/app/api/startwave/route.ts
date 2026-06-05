@@ -24,6 +24,7 @@ type EventRow = {
 };
 
 type StartwaveEntryRow = {
+  athlete_id: number;
   project_name: string;
   wave_label: string;
   start_date: string;
@@ -42,7 +43,6 @@ type StartwaveAthleteRow = {
   id: number;
   name: string;
   phone_masked: string | null;
-  startwave_entries: StartwaveEntryRow[] | null;
 };
 
 async function getDb(): Promise<SupabaseClient | null> {
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   try {
     const [eventRow, athletesResult] = await Promise.all([fetchEvent(db, event), fetchAthletes(db, event, name, suffix)]);
     if (athletesResult.error) {
-      const status = athletesResult.error.code === "42P01" ? 503 : 500;
+      const status = missingStartwaveTable(athletesResult.error.code) ? 503 : 500;
       const message = status === 503 ? "出发名单正在同步，请稍后重试" : "查询失败，请稍后重试";
       return json({ success: false, message }, status);
     }
@@ -95,6 +95,14 @@ export async function POST(request: Request) {
       return json({ success: false, message: `未找到 "${name}" 的报名记录，请检查姓名是否正确` });
     }
 
+    const entriesResult = await fetchEntries(db, event, athletes.map((athlete) => athlete.id));
+    if (entriesResult.error) {
+      const status = missingStartwaveTable(entriesResult.error.code) ? 503 : 500;
+      const message = status === 503 ? "出发名单正在同步，请稍后重试" : "查询失败，请稍后重试";
+      return json({ success: false, message }, status);
+    }
+    const entriesByAthlete = groupEntriesByAthlete(entriesResult.data ?? []);
+
     if (athletes.length > 1) {
       return json({
         success: false,
@@ -102,13 +110,13 @@ export async function POST(request: Request) {
         message: suffix ? `找到 ${athletes.length} 位匹配选手，请联系现场工作人员确认报名信息` : `存在 ${athletes.length} 位同名选手，请输入手机号或证件号后四位区分`,
         candidates: athletes.map((athlete) => ({
           name: athlete.name,
-          projects: uniqueProjects(athlete.startwave_entries ?? []),
+          projects: uniqueProjects(entriesByAthlete.get(athlete.id) ?? []),
         })),
       });
     }
 
     const athlete = athletes[0];
-    const entries = (athlete.startwave_entries ?? []).map(rowToEntry).sort(compareEntries);
+    const entries = (entriesByAthlete.get(athlete.id) ?? []).map(rowToEntry).sort(compareEntries);
     return json({
       success: true,
       event: {
@@ -145,27 +153,7 @@ async function fetchEvent(db: SupabaseClient, event: string): Promise<EventRow |
 async function fetchAthletes(db: SupabaseClient, event: string, name: string, suffix: string | undefined) {
   let query = db
     .from("startwave_athletes")
-    .select(
-      `
-        id,
-        name,
-        phone_masked,
-        startwave_entries (
-          project_name,
-          wave_label,
-          start_date,
-          start_time,
-          start_datetime,
-          bib_or_chip,
-          team_code,
-          team_name,
-          member_index,
-          gender,
-          division,
-          organization
-        )
-      `,
-    )
+    .select("id,name,phone_masked")
     .eq("event_slug", event)
     .eq("name", name);
 
@@ -174,6 +162,17 @@ async function fetchAthletes(db: SupabaseClient, event: string, name: string, su
   }
 
   return query.returns<StartwaveAthleteRow[]>();
+}
+
+async function fetchEntries(db: SupabaseClient, event: string, athleteIds: number[]) {
+  return db
+    .from("startwave_entries")
+    .select(
+      "athlete_id,project_name,wave_label,start_date,start_time,start_datetime,bib_or_chip,team_code,team_name,member_index,gender,division,organization",
+    )
+    .eq("event_slug", event)
+    .in("athlete_id", athleteIds)
+    .returns<StartwaveEntryRow[]>();
 }
 
 function rowToEntry(row: StartwaveEntryRow): StartwaveEntry {
@@ -201,6 +200,20 @@ function compareEntries(a: StartwaveEntry, b: StartwaveEntry): number {
 
 function uniqueProjects(entries: StartwaveEntryRow[]): string[] {
   return [...new Set(entries.map((entry) => entry.project_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+}
+
+function groupEntriesByAthlete(entries: StartwaveEntryRow[]): Map<number, StartwaveEntryRow[]> {
+  const grouped = new Map<number, StartwaveEntryRow[]>();
+  entries.forEach((entry) => {
+    const current = grouped.get(entry.athlete_id) ?? [];
+    current.push(entry);
+    grouped.set(entry.athlete_id, current);
+  });
+  return grouped;
+}
+
+function missingStartwaveTable(code: string | undefined): boolean {
+  return code === "42P01" || code === "PGRST205";
 }
 
 function normalizeSuffix(value: unknown): string | undefined | null {
