@@ -1,4 +1,4 @@
-import { RotateCcw, Search, X } from "lucide-react";
+import { ResetIcon, SearchIcon, XIcon } from "@/components/Icons";
 import type { RankFilterState } from "@/components/rankTypes";
 import { statusFilterOptions } from "@/lib/status";
 import type { RankingFilters } from "@/lib/types";
@@ -23,7 +23,7 @@ export default function RankFilters({
   return (
     <section className="grid gap-3 rounded border border-[var(--line)] bg-white p-3 shadow-sm xl:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]">
       <label className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
         <input
           type="search"
           value={searchValue}
@@ -40,7 +40,7 @@ export default function RankFilters({
             onClick={() => onSearchChange("")}
             className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded text-[var(--muted)] transition hover:bg-[var(--brand-soft)] hover:text-[var(--brand-navy)]"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         ) : null}
       </label>
@@ -71,7 +71,7 @@ export default function RankFilters({
         onClick={onReset}
         className="grid h-11 w-11 place-items-center rounded border border-[var(--brand-navy)] bg-[var(--brand-lime)] text-[var(--brand-navy)] transition hover:bg-white"
       >
-        <RotateCcw className="h-4 w-4" />
+        <ResetIcon className="h-4 w-4" />
       </button>
     </section>
   );

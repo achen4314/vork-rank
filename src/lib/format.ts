@@ -19,3 +19,12 @@ export function compactText(value: string | null | undefined, fallback = "-"): s
 export function rankLabel(rank: number | null): string {
   return rank === null ? "未排名" : `第 ${rank} 名`;
 }
+
+export function rankDeltaText(rawRank: number | null, finalRank: number | null): string {
+  if (rawRank === null && finalRank === null) return "未排名";
+  if (rawRank === null) return `最终 ${rankLabel(finalRank)}`;
+  if (finalRank === null) return `净名次 第 ${rawRank} 名 / 未排名`;
+  if (rawRank === finalRank) return `净名次同为第 ${finalRank} 名`;
+  const delta = finalRank - rawRank;
+  return `净名次第 ${rawRank} 名 → 最终第 ${finalRank} 名（${delta > 0 ? `下降 ${delta}` : `上升 ${Math.abs(delta)}`} 名）`;
+}

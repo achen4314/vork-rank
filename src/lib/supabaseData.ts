@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getStaticDataset } from "@/lib/localData";
 import { normalizeSearchTerm } from "@/lib/search";
 import { statusFilterToDbStatus } from "@/lib/status";
@@ -71,14 +71,19 @@ export function hasSupabaseConfig(): boolean {
   return Boolean(url && anon);
 }
 
-function client(): SupabaseClient | null {
+async function client(): Promise<SupabaseClient | null> {
   if (cachedClient !== undefined) return cachedClient;
-  cachedClient = url && anon ? createClient(url, anon, { auth: { persistSession: false } }) : null;
+  if (!url || !anon) {
+    cachedClient = null;
+    return cachedClient;
+  }
+  const { createClient } = await import("@supabase/supabase-js");
+  cachedClient = createClient(url, anon, { auth: { persistSession: false } });
   return cachedClient;
 }
 
 export async function fetchSupabaseEvent(): Promise<EventInfo | null> {
-  const db = client();
+  const db = await client();
   if (!db) return null;
   const { data, error } = await db
     .from("events")
@@ -97,7 +102,7 @@ export async function fetchSupabaseEvent(): Promise<EventInfo | null> {
 }
 
 export async function fetchSupabaseFilters(): Promise<FilterSnapshot | null> {
-  const db = client();
+  const db = await client();
   if (!db) return null;
   if (cachedFilters && cachedFilters.expiresAt > Date.now()) return cachedFilters.value;
 
@@ -140,7 +145,7 @@ export async function querySupabaseResults(params: {
   page: number;
   pageSize: number;
 }): Promise<{ total: number; results: ResultEntry[] } | null> {
-  const db = client();
+  const db = await client();
   if (!db) return null;
   let query = db.from("result_entries").select("*", { count: "exact" }).eq("event_slug", eventSlug);
   if (params.group) query = query.eq("group_name", params.group);
@@ -168,7 +173,7 @@ export async function querySupabaseResults(params: {
 }
 
 export async function getSupabaseDetail(bib: string, divisionCode: string) {
-  const db = client();
+  const db = await client();
   if (!db) return null;
   const trimmedDivisionCode = divisionCode.trim();
   if (!trimmedDivisionCode) return null;

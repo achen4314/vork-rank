@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy } from "lucide-react";
+import { CheckIcon, CopyIcon } from "@/components/Icons";
 import { useEffect, useRef, useState } from "react";
 
 type CopyState = "idle" | "copied" | "error";
@@ -30,7 +30,7 @@ export default function ShareButton() {
       aria-label="复制选手分享链接"
       className="inline-flex h-10 w-28 items-center justify-center gap-2 rounded border border-[var(--line)] bg-white px-3 text-sm font-bold text-[var(--brand-navy)] transition hover:border-[var(--brand-navy)]"
     >
-      {state === "copied" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      {state === "copied" ? <CheckIcon className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}
       {state === "copied" ? "已复制" : state === "error" ? "复制失败" : "复制链接"}
     </button>
   );

@@ -102,6 +102,18 @@ export function JudgingDecisionCard({ decision, compact = false }: { decision: J
         </div>
       </div>
       <div className={`flex flex-col gap-2 text-[var(--ink)] ${compact ? "mt-2 text-xs" : "mt-3 text-sm"}`}>
+        {decision.penaltyStatusText ? (
+          <p className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">
+            <span className="font-bold text-[var(--brand-navy)]">罚时状态：</span>
+            {decision.penaltyStatusText}
+          </p>
+        ) : null}
+        {decision.noteText ? (
+          <p className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">
+            <span className="font-bold text-[var(--brand-navy)]">复核说明：</span>
+            {decision.noteText}
+          </p>
+        ) : null}
         {visibleReasons.length ? (
           visibleReasons.map((reason, index) => (
             <p key={`${index}-${reason}`} className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">

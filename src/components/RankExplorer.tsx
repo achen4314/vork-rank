@@ -5,9 +5,16 @@ import RankFilters from "@/components/RankFilters";
 import RankHeader from "@/components/RankHeader";
 import RankTable from "@/components/RankTable";
 import { useRankExplorer } from "@/components/useRankExplorer";
+import type { ResultListResponse } from "@/lib/types";
 
-export default function RankExplorer() {
-  const rank = useRankExplorer();
+export default function RankExplorer({
+  initialData = null,
+  initialError = "",
+}: {
+  initialData?: ResultListResponse | null;
+  initialError?: string;
+}) {
+  const rank = useRankExplorer({ initialData, initialError });
 
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">

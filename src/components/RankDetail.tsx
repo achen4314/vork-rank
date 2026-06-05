@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRightIcon } from "@/components/Icons";
 import Metric from "@/components/Metric";
 import { JudgingDecisionCard, RaceReplay } from "@/components/PerformanceBlocks";
-import { compactText, formatDuration, rankLabel } from "@/lib/format";
+import { compactText, formatDuration, rankDeltaText, rankLabel } from "@/lib/format";
 import { resultHref } from "@/lib/resultLinks";
 import type { ResultDetailResponse, ResultEntry } from "@/lib/types";
 
@@ -34,15 +34,17 @@ export default function RankDetail({ selected, detail, isLoading, error, onRetry
           </div>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <Metric label="最终名次" value={rankLabel(entry.finalRank)} />
+            <Metric label="名次变化" value={rankDeltaText(entry.rawRank, entry.finalRank)} />
             <Metric label="最终成绩" value={entry.finalTimeText || formatDuration(entry.finalTimeMs)} />
             <Metric label="净成绩" value={entry.netTimeText || formatDuration(entry.netTimeMs)} />
             <Metric label="应用罚时" value={entry.appliedPenaltyMs === 0 ? "-" : entry.appliedPenaltyText || formatDuration(entry.appliedPenaltyMs)} />
+            <Metric label="累计罚时" value={entry.cumulativePenaltyMs === 0 ? "-" : entry.cumulativePenaltyText || formatDuration(entry.cumulativePenaltyMs)} />
           </div>
           <Link
             href={resultHref(entry)}
             className="inline-flex h-10 items-center justify-center gap-2 rounded border border-[var(--brand-navy)] bg-[var(--brand-lime)] px-3 text-sm font-bold text-[var(--brand-navy)] transition hover:bg-white"
           >
-            <ArrowUpRight className="h-4 w-4" />
+            <ArrowUpRightIcon className="h-4 w-4" />
             完整详情页
           </Link>
 

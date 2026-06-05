@@ -9,7 +9,13 @@ import type { ResultDetailResponse, ResultEntry, ResultListResponse } from "@/li
 const defaultPageSize = 25;
 const debounceMs = 300;
 
-export function useRankExplorer() {
+export function useRankExplorer({
+  initialData = null,
+  initialError = "",
+}: {
+  initialData?: ResultListResponse | null;
+  initialError?: string;
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialState = useMemo(() => parseSearchParams(searchParams), [searchParams]);
@@ -18,17 +24,18 @@ export function useRankExplorer() {
   const [page, setPage] = useState(initialState.page);
   const [pageSize, setPageSize] = useState(initialState.pageSize);
   const [selected, setSelected] = useState<ResultSelection | null>(initialState.selected);
-  const [data, setData] = useState<ResultListResponse | null>(null);
+  const [data, setData] = useState<ResultListResponse | null>(initialData);
   const [detail, setDetail] = useState<ResultDetailResponse | null>(null);
-  const [listError, setListError] = useState("");
+  const [listError, setListError] = useState(initialError);
   const [detailError, setDetailError] = useState("");
-  const [isListLoading, setListLoading] = useState(true);
+  const [isListLoading, setListLoading] = useState(!initialData && !initialError);
   const [isDetailLoading, setDetailLoading] = useState(false);
   const [listRetryKey, setListRetryKey] = useState(0);
   const [detailRetryKey, setDetailRetryKey] = useState(0);
   const debouncedSearch = useDebouncedValue(searchValue, debounceMs);
   const lastHref = useRef("");
   const lastDebouncedSearch = useRef(debouncedSearch);
+  const shouldUseInitialData = useRef(Boolean(initialData && !initialError));
 
   useEffect(() => {
     const trimmedSearch = debouncedSearch.trim();
@@ -40,6 +47,13 @@ export function useRankExplorer() {
   }, [debouncedSearch]);
 
   useEffect(() => {
+    if (shouldUseInitialData.current) {
+      shouldUseInitialData.current = false;
+      setSelected((current) => current ?? selectionFromEntry(initialData?.results[0] ?? null));
+      setListLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     Object.entries(filters).forEach(([key, value]) => {

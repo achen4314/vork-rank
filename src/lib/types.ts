@@ -91,6 +91,8 @@ export type JudgingDecision = {
   tone: "clear" | "review" | "penalty" | "unranked";
   penaltyText: string;
   cumulativePenaltyText: string;
+  penaltyStatusText: string;
+  noteText: string;
   reasons: string[];
 };
 

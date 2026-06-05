@@ -28,9 +28,10 @@ export default function RankHeader({ data, isLoading }: { data: ResultListRespon
             </h1>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 xl:grid-cols-5">
           {showSkeleton ? (
             <>
+              <MetricSkeleton />
               <MetricSkeleton />
               <MetricSkeleton />
               <MetricSkeleton />
@@ -40,7 +41,8 @@ export default function RankHeader({ data, isLoading }: { data: ResultListRespon
             <>
               <Metric label="总人数" value={data?.summary.total ?? "-"} />
               <Metric label="已排名" value={data?.summary.ranked ?? "-"} />
-              <Metric label="罚时" value={data?.summary.appliedPenaltyCount ?? "-"} />
+              <Metric label="累计罚时" value={data?.summary.cumulativePenaltyCount ?? "-"} />
+              <Metric label="应用罚时" value={data?.summary.appliedPenaltyCount ?? "-"} />
               <Metric label="数据状态" value={data?.source === "supabase" ? "实时同步" : data ? "静态兜底" : "-"} />
             </>
           )}

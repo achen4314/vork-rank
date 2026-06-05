@@ -195,64 +195,69 @@ function buildJudgingDecision(result: ResultEntry | null): JudgingDecision {
       tone: "unranked",
       penaltyText: "-",
       cumulativePenaltyText: "-",
+      penaltyStatusText: "",
+      noteText: "",
       reasons: [],
     };
   }
   const reasons = splitReasons([result.penaltyStatus, result.note].filter(Boolean).join("；"));
   const penaltyText = result.appliedPenaltyText || formatDuration(result.appliedPenaltyMs);
   const cumulativePenaltyText = result.cumulativePenaltyText || formatDuration(result.cumulativePenaltyMs);
+  const decisionBase = {
+    penaltyText,
+    cumulativePenaltyText,
+    penaltyStatusText: result.penaltyStatus,
+    noteText: result.note,
+    reasons,
+  };
   const status = `${result.status} ${result.penaltyStatus} ${result.note}`.toLowerCase();
 
   if (result.status !== "FINISHED" || result.finalRank === null) {
     return {
+      ...decisionBase,
       label: result.status === "FINISHED" ? "未排名 / 需复核" : result.status,
       tone: "unranked",
-      penaltyText,
-      cumulativePenaltyText,
-      reasons,
     };
   }
   if (result.appliedPenaltyMs > 0) {
     return {
+      ...decisionBase,
       label: "Penalty Applied",
       tone: "penalty",
-      penaltyText,
-      cumulativePenaltyText,
-      reasons,
     };
   }
   if (result.cumulativePenaltyMs > 0 || /penalty|罚时|处罚|加罚/.test(status)) {
     return {
+      ...decisionBase,
       label: "Penalty Recorded",
       tone: "penalty",
-      penaltyText,
-      cumulativePenaltyText,
-      reasons,
     };
   }
   if (result.cumulativePenaltyMs > 0 || /复核|缺失|少跑|警告|异常/.test(status)) {
     return {
+      ...decisionBase,
       label: "Review Note",
       tone: "review",
-      penaltyText,
-      cumulativePenaltyText,
-      reasons,
     };
   }
   return {
+    ...decisionBase,
     label: "Clear",
     tone: "clear",
-    penaltyText,
-    cumulativePenaltyText,
     reasons: reasons.length ? reasons : ["无额外判罚记录"],
   };
 }
 
 function splitReasons(text: string): string[] {
+  const seen = new Set<string>();
   return text
     .split(/[；;]+/)
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter((item) => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
 }
 
 function buildRankContext(result: ResultEntry | null, rankingPool: ResultEntry[]): RankContext {

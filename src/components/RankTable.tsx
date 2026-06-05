@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/Icons";
 import { selectClassName } from "@/components/RankFilters";
 import type { ResultSelection } from "@/components/rankTypes";
-import { compactText, formatDuration } from "@/lib/format";
+import { compactText, formatDuration, rankDeltaText } from "@/lib/format";
 import { sameEntry } from "@/lib/resultLinks";
 import { statusLabel } from "@/lib/status";
 import type { ResultEntry } from "@/lib/types";
@@ -76,13 +76,21 @@ export default function RankTable({
                       selected && sameEntry(selected, entry) ? "bg-[var(--brand-soft)] shadow-[inset_4px_0_0_var(--brand-lime)]" : ""
                     }`}
                   >
-                    <td className="px-3 py-3 font-black">{entry.finalRank ?? "-"}</td>
+                    <td className="px-3 py-3">
+                      <p className="font-black">{entry.finalRank ?? "-"}</p>
+                      {entry.rawRank !== entry.finalRank ? <p className="mt-1 text-xs text-[var(--muted)]">净 {entry.rawRank ?? "-"}</p> : null}
+                    </td>
                     <td className="px-3 py-3">{entry.bib}</td>
                     <td className="px-3 py-3 font-bold">{entry.displayName}</td>
                     <td className="px-3 py-3">{compactText(entry.school, "未采集")}</td>
                     <td className="px-3 py-3">{entry.divisionName}</td>
                     <td className="px-3 py-3">{entry.netTimeText || formatDuration(entry.netTimeMs)}</td>
-                    <td className="px-3 py-3 text-[var(--red)]">{penaltyDisplay(entry)}</td>
+                    <td className="px-3 py-3 text-[var(--red)]">
+                      <p>{penaltyDisplay(entry)}</p>
+                      {entry.cumulativePenaltyMs !== entry.appliedPenaltyMs ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">累计 {formatDuration(entry.cumulativePenaltyMs)}</p>
+                      ) : null}
+                    </td>
                     <td className="px-3 py-3 font-black">{entry.finalTimeText || formatDuration(entry.finalTimeMs)}</td>
                     <td className="px-3 py-3">{statusLabel(entry.status)}</td>
                   </tr>
@@ -112,7 +120,7 @@ export default function RankTable({
             ))}
           </select>
           <button type="button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1} className={pagerButtonClassName}>
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeftIcon className="h-4 w-4" />
             上一页
           </button>
           <button
@@ -122,7 +130,7 @@ export default function RankTable({
             className={pagerButtonClassName}
           >
             下一页
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -164,6 +172,7 @@ function MobileResultCards({
                 <p className="text-xs font-bold text-[var(--muted)]">#{entry.finalRank ?? "未排名"} · {entry.bib}</p>
                 <p className="mt-1 break-words text-base font-black text-[var(--brand-navy)]">{entry.displayName}</p>
                 <p className="mt-1 text-xs text-[var(--muted)]">{entry.divisionName}</p>
+                {entry.rawRank !== entry.finalRank ? <p className="mt-1 text-xs text-[var(--red)]">{rankDeltaText(entry.rawRank, entry.finalRank)}</p> : null}
               </div>
               <span className="shrink-0 rounded border border-[var(--line)] px-2 py-1 text-xs font-bold text-[var(--brand-navy)]">
                 {statusLabel(entry.status)}
@@ -171,9 +180,12 @@ function MobileResultCards({
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
               <MobileMetric label="净成绩" value={entry.netTimeText || formatDuration(entry.netTimeMs)} />
-              <MobileMetric label="罚时" value={penaltyDisplay(entry)} />
+              <MobileMetric label="应用罚时" value={penaltyDisplay(entry)} />
               <MobileMetric label="最终" value={entry.finalTimeText || formatDuration(entry.finalTimeMs)} strong />
             </div>
+            {entry.cumulativePenaltyMs !== entry.appliedPenaltyMs ? (
+              <p className="mt-2 text-xs font-bold text-[var(--red)]">累计罚时 {formatDuration(entry.cumulativePenaltyMs)}</p>
+            ) : null}
             <p className="mt-2 text-xs text-[var(--muted)]">{compactText(entry.school, "未采集")}</p>
           </button>
         );

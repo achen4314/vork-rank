@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@/components/Icons";
 import PrintButton from "@/components/PrintButton";
 import { JudgingDecisionCard, RaceReplay, RankBuckets, WorkoutSummaryTable } from "@/components/PerformanceBlocks";
 import RadarChart from "@/components/RadarChart";
 import SegmentBars from "@/components/SegmentBars";
 import ShareButton from "@/components/ShareButton";
 import TrendChart from "@/components/TrendChart";
-import { compactText, formatDuration, rankLabel } from "@/lib/format";
+import { compactText, formatDuration, rankDeltaText, rankLabel } from "@/lib/format";
 import { loadResultDetail } from "@/lib/detailData";
 
 type DetailPageProps = {
@@ -44,7 +44,7 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
           <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority sizes="160px" className="h-6 w-fit" />
           <h1 className="text-2xl font-black text-[var(--brand-navy)]">未找到该选手成绩</h1>
           <Link href="/" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-[var(--brand-navy)]">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeftIcon className="h-4 w-4" />
             返回排行榜
           </Link>
         </section>
@@ -60,7 +60,7 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
             href="/"
             className="inline-flex h-10 items-center gap-2 rounded border border-[var(--line)] bg-white px-3 text-sm font-bold text-[var(--brand-navy)] transition hover:border-[var(--brand-navy)]"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeftIcon className="h-4 w-4" />
             返回排行榜
           </Link>
           <div className="flex flex-wrap items-center gap-2">
@@ -91,10 +91,13 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
                 <p className="mt-1 text-sm text-[var(--muted)]">{result.divisionName}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 xl:grid-cols-6">
               <Metric label="最终名次" value={rankLabel(result.finalRank)} />
+              <Metric label="名次变化" value={rankDeltaText(result.rawRank, result.finalRank)} />
               <Metric label="最终成绩" value={result.finalTimeText || formatDuration(result.finalTimeMs)} />
               <Metric label="净成绩" value={result.netTimeText || formatDuration(result.netTimeMs)} />
+              <Metric label="应用罚时" value={result.appliedPenaltyMs === 0 ? "-" : result.appliedPenaltyText || formatDuration(result.appliedPenaltyMs)} />
+              <Metric label="累计罚时" value={result.cumulativePenaltyMs === 0 ? "-" : result.cumulativePenaltyText || formatDuration(result.cumulativePenaltyMs)} />
               <Metric label="数据状态" value={detail.source === "supabase" ? "实时同步" : "静态兜底"} />
             </div>
           </div>
@@ -112,6 +115,8 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
               <Info label="年龄组" value={compactText(result.groupName, "未采集")} />
               <Info label="项目" value={compactText(result.projectName, "未采集")} />
               <Info label="状态" value={result.status} />
+              <Info label="净名次" value={rankLabel(result.rawRank)} />
+              <Info label="最终名次" value={rankLabel(result.finalRank)} />
             </div>
           </div>
           <div className="rounded border border-[var(--line)] bg-white p-4">
@@ -178,7 +183,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded border border-[var(--line)] bg-[var(--metric)] px-3 py-2">
       <p className="text-xs text-[var(--muted)]">{label}</p>
-      <p className="mt-1 font-black text-[var(--brand-navy)]">{value}</p>
+      <p className="mt-1 break-words font-black text-[var(--brand-navy)]">{value}</p>
     </div>
   );
 }
