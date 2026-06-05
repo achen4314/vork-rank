@@ -95,7 +95,7 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
               <Metric label="最终名次" value={rankLabel(result.finalRank)} />
               <Metric label="最终成绩" value={result.finalTimeText || formatDuration(result.finalTimeMs)} />
               <Metric label="净成绩" value={result.netTimeText || formatDuration(result.netTimeMs)} />
-              <Metric label="数据源" value={detail.source === "supabase" ? "Supabase" : "本地"} />
+              <Metric label="数据状态" value={detail.source === "supabase" ? "实时同步" : "静态兜底"} />
             </div>
           </div>
         </header>

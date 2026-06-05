@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { readFileSync } from "node:fs";
 import xlsx from "xlsx";
 
 const root = process.cwd();
@@ -51,7 +50,7 @@ for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
   const cumulativePenaltyText = pick(row, headers, ["累计罚时"]);
   const appliedPenaltyText = pick(row, headers, ["应用罚时", "罚时"]);
   const finalText = pick(row, headers, ["最终总成绩", "最终成绩", "总成绩"]);
-  const status = finalRank === null ? "DNF" : "FINISHED";
+  const status = inferStatus(row, headers, finalRank);
 
   const result = {
     eventSlug: EVENT.slug,
@@ -169,7 +168,7 @@ function parseRank(value) {
 
 function parseDuration(value) {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return value > 0 && value < 1 ? Math.round(value * 24 * 60 * 60 * 1000) : Math.round(value * 1000);
+    return value > 0 && value <= 1 ? Math.round(value * 24 * 60 * 60 * 1000) : Math.round(value * 1000);
   }
   const text = clean(value);
   if (!text || text === "-" || text === "0") return text === "0" ? 0 : null;
@@ -186,7 +185,34 @@ function splitHeaders(headers) {
   const noteIndex = headers.findIndex((header) => ["违例/复核说明", "说明", "备注"].includes(header));
   return headers
     .map((header, index) => ({ key: slug(header || `split_${index}`), label: header, index }))
-    .filter(({ label, index }) => index > noteIndex && /跑步|项目|第\d+区|分区|split/i.test(label));
+    .filter(({ label, index }) => index > noteIndex && /跑步|项目|第\d+区|分区|换项区|休息区|roxzone|split/i.test(label));
+}
+
+function inferStatus(row, headers, finalRank) {
+  const explicitStatus = parseStatus(
+    pick(row, headers, [
+      "状态",
+      "成绩状态",
+      "排名状态",
+      "完赛状态",
+      "裁判状态",
+      "Status",
+      "status",
+    ]),
+  );
+  if (explicitStatus) return explicitStatus;
+  return finalRank === null ? "DNF" : "FINISHED";
+}
+
+function parseStatus(value) {
+  const text = clean(value);
+  if (!text) return "";
+  const upper = text.toUpperCase();
+  if (/\bDSQ\b|\bDQ\b|取消资格|成绩取消|犯规取消|取消排名/.test(upper)) return "DSQ";
+  if (/\bDNS\b|未出发|未参赛|未到场|缺席|弃权未出发/.test(upper)) return "DNS";
+  if (/\bDNF\b|未完赛|未完成|退赛|中退/.test(upper)) return "DNF";
+  if (/\bFINISHED\b|\bOK\b|完赛|已完赛|有效成绩|正常/.test(upper)) return "FINISHED";
+  return "";
 }
 
 function slug(value) {
@@ -199,9 +225,9 @@ function sql(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
-function buildSeedSql(dataset) {
+function buildSeedSql(dataset, { transaction = true } = {}) {
   const lines = [
-    "begin;",
+    ...(transaction ? ["begin;"] : []),
     `delete from split_entries where event_slug = ${sql(dataset.event.slug)};`,
     `delete from result_entries where event_slug = ${sql(dataset.event.slug)};`,
     `delete from events where slug = ${sql(dataset.event.slug)};`,
@@ -251,7 +277,8 @@ function buildSeedSql(dataset) {
       ].map(sql).join(", ")});`,
     );
   }
-  lines.push("commit;", "");
+  if (transaction) lines.push("commit;");
+  lines.push("");
   return lines.join("\n");
 }
 
@@ -259,13 +286,20 @@ async function importToDatabase(dataset) {
   const connectionString = process.env.SUPABASE_DB_URL;
   if (!connectionString) throw new Error("SUPABASE_DB_URL is required for --import-db");
   const { Client } = await import("pg");
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
-  await client.connect();
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: true } });
+  let connected = false;
   try {
-    await client.query(readFileSync(path.join(root, "database", "schema.sql"), "utf8"));
-    await client.query(buildSeedSql(dataset));
+    await client.connect();
+    connected = true;
+    await client.query("begin");
+    await client.query(await fs.readFile(path.join(root, "database", "schema.sql"), "utf8"));
+    await client.query(buildSeedSql(dataset, { transaction: false }));
+    await client.query("commit");
+  } catch (error) {
+    if (connected) await client.query("rollback").catch(() => undefined);
+    throw error;
   } finally {
-    await client.end();
+    if (connected) await client.end().catch(() => undefined);
   }
   console.log("imported to Supabase database");
 }

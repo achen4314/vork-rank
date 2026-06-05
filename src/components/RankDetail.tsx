@@ -36,7 +36,7 @@ export default function RankDetail({ selected, detail, isLoading, error, onRetry
             <Metric label="最终名次" value={rankLabel(entry.finalRank)} />
             <Metric label="最终成绩" value={entry.finalTimeText || formatDuration(entry.finalTimeMs)} />
             <Metric label="净成绩" value={entry.netTimeText || formatDuration(entry.netTimeMs)} />
-            <Metric label="应用罚时" value={entry.appliedPenaltyText || formatDuration(entry.appliedPenaltyMs)} />
+            <Metric label="应用罚时" value={entry.appliedPenaltyMs === 0 ? "-" : entry.appliedPenaltyText || formatDuration(entry.appliedPenaltyMs)} />
           </div>
           <Link
             href={resultHref(entry)}
@@ -55,7 +55,10 @@ export default function RankDetail({ selected, detail, isLoading, error, onRetry
           {!isLoading && !error && !detail?.judgingDecision ? (
             <div className="rounded border border-[var(--line)] p-3 text-sm">
               <p className="font-bold text-[var(--brand-navy)]">Judging Decision</p>
-              <p className="mt-1 text-[var(--muted)]">{compactText(entry.note || entry.penaltyStatus, "无")}</p>
+              <div className="mt-1 space-y-1 text-[var(--muted)]">
+                <p>罚时状态：{compactText(entry.penaltyStatus, "无")}</p>
+                <p>复核说明：{compactText(entry.note, "无")}</p>
+              </div>
             </div>
           ) : null}
           {!isLoading && !error && detail?.raceReplay.length ? (

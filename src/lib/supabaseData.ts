@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getStaticDataset } from "@/lib/localData";
 import { normalizeSearchTerm } from "@/lib/search";
+import { statusFilterToDbStatus } from "@/lib/status";
 import type { EventInfo, RankingFilters, RankingSummary, ResultEntry, SplitEntry } from "@/lib/types";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -63,6 +65,7 @@ type SplitRow = {
 };
 
 type FilterOptionRow = Pick<ResultRow, "group_name" | "project_name" | "division_code" | "division_name">;
+type FilterSnapshot = { summary: RankingSummary; filters: RankingFilters };
 
 export function hasSupabaseConfig(): boolean {
   return Boolean(url && anon);
@@ -77,7 +80,11 @@ function client(): SupabaseClient | null {
 export async function fetchSupabaseEvent(): Promise<EventInfo | null> {
   const db = client();
   if (!db) return null;
-  const { data, error } = await db.from("events").select("*").eq("slug", eventSlug).maybeSingle<EventRow>();
+  const { data, error } = await db
+    .from("events")
+    .select("slug,name,event_date,venue,timezone,source_updated_at")
+    .eq("slug", eventSlug)
+    .maybeSingle<EventRow>();
   if (error || !data) return null;
   return {
     slug: data.slug,
@@ -89,51 +96,36 @@ export async function fetchSupabaseEvent(): Promise<EventInfo | null> {
   };
 }
 
-export async function fetchSupabaseFilters(): Promise<{ summary: RankingSummary; filters: RankingFilters } | null> {
+export async function fetchSupabaseFilters(): Promise<FilterSnapshot | null> {
   const db = client();
   if (!db) return null;
   if (cachedFilters && cachedFilters.expiresAt > Date.now()) return cachedFilters.value;
 
-  const [total, ranked, appliedPenalty, cumulativePenalty, optionRows] = await Promise.all([
+  const [total, ranked, appliedPenalty, cumulativePenalty, bundledOptions] = await Promise.all([
     countResultRows(db, "total"),
     countResultRows(db, "ranked"),
     countResultRows(db, "appliedPenalty"),
     countResultRows(db, "cumulativePenalty"),
-    db
-      .from("result_entries")
-      .select("group_name,project_name,division_code,division_name")
-      .eq("event_slug", eventSlug)
-      .returns<FilterOptionRow[]>(),
+    getBundledFilterSnapshot(),
   ]);
-  if (
-    total === null ||
-    ranked === null ||
-    appliedPenalty === null ||
-    cumulativePenalty === null ||
-    optionRows.error ||
-    !optionRows.data
-  ) {
+  if (total === null || ranked === null || appliedPenalty === null || cumulativePenalty === null) {
     return null;
   }
 
-  const divisions = Array.from(
-    new Map(optionRows.data.map((row) => [row.division_code, { code: row.division_code, name: row.division_name ?? "" }])).values(),
-  );
+  const filterOptions = bundledOptions?.filters ?? (await fetchFilterOptionsFromSupabase(db));
+  if (!filterOptions) return null;
+
   const value = {
     summary: {
       total,
       ranked,
       unranked: Math.max(0, total - ranked),
-      divisionCount: divisions.length,
+      divisionCount: filterOptions.divisions.length,
       appliedPenaltyCount: appliedPenalty,
       cumulativePenaltyCount: cumulativePenalty,
-      sourceUpdatedAt: new Date().toISOString(),
+      sourceUpdatedAt: bundledOptions?.summary.sourceUpdatedAt ?? new Date().toISOString(),
     },
-    filters: {
-      groups: [...new Set(optionRows.data.map((row) => row.group_name).filter(isNonEmptyString))].sort(),
-      projects: [...new Set(optionRows.data.map((row) => row.project_name).filter(isNonEmptyString))].sort(),
-      divisions,
-    },
+    filters: filterOptions,
   };
   cachedFilters = { expiresAt: Date.now() + filtersCacheMs, value };
   return value;
@@ -155,7 +147,10 @@ export async function querySupabaseResults(params: {
   if (params.project) query = query.eq("project_name", params.project);
   if (params.division) query = query.eq("division_code", params.division);
   if (params.status === "ranked") query = query.not("final_rank", "is", null);
+  if (params.status === "unranked") query = query.is("final_rank", null);
   if (params.status === "penalty") query = query.gt("applied_penalty_ms", 0);
+  const concreteStatus = statusFilterToDbStatus(params.status ?? "");
+  if (concreteStatus) query = query.eq("status", concreteStatus);
   const rawQ = (params.q ?? "").trim();
   const q = normalizeSearchTerm(rawQ);
   if (rawQ && !q) return { total: 0, results: [] };
@@ -175,9 +170,15 @@ export async function querySupabaseResults(params: {
 export async function getSupabaseDetail(bib: string, divisionCode: string) {
   const db = client();
   if (!db) return null;
-  let query = db.from("result_entries").select("*").eq("event_slug", eventSlug).eq("bib", bib);
-  if (divisionCode) query = query.eq("division_code", divisionCode);
-  const { data: resultRow } = await query.maybeSingle<ResultRow>();
+  const trimmedDivisionCode = divisionCode.trim();
+  if (!trimmedDivisionCode) return null;
+  const { data: resultRow } = await db
+    .from("result_entries")
+    .select("*")
+    .eq("event_slug", eventSlug)
+    .eq("bib", bib)
+    .eq("division_code", trimmedDivisionCode)
+    .maybeSingle<ResultRow>();
   if (!resultRow) return null;
   const result = rowToResult(resultRow);
   const { data: splitRows } = await db
@@ -202,6 +203,33 @@ export async function getSupabaseDetail(bib: string, divisionCode: string) {
     splits: (splitRows ?? []).map(rowToSplit),
     divisionSplits: (divisionSplitRows ?? splitRows ?? []).map(rowToSplit),
     rankingPool: (rankRows ?? [resultRow]).map(rowToResult),
+  };
+}
+
+async function getBundledFilterSnapshot(): Promise<FilterSnapshot | null> {
+  try {
+    const dataset = await getStaticDataset();
+    return { summary: dataset.summary, filters: dataset.filters };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFilterOptionsFromSupabase(db: SupabaseClient): Promise<RankingFilters | null> {
+  const { data, error } = await db
+    .from("result_entries")
+    .select("group_name,project_name,division_code,division_name")
+    .eq("event_slug", eventSlug)
+    .returns<FilterOptionRow[]>();
+  if (error || !data) return null;
+
+  const divisions = Array.from(
+    new Map(data.map((row) => [row.division_code, { code: row.division_code, name: row.division_name ?? "" }])).values(),
+  );
+  return {
+    groups: [...new Set(data.map((row) => row.group_name).filter(isNonEmptyString))].sort(),
+    projects: [...new Set(data.map((row) => row.project_name).filter(isNonEmptyString))].sort(),
+    divisions,
   };
 }
 

@@ -14,6 +14,10 @@ describe("formatDuration", () => {
     expect(formatDuration(null)).toBe("-");
     expect(formatDuration(-61_000)).toBe("-00:01:01");
   });
+
+  it("floors sub-second precision instead of rounding into the next second", () => {
+    expect(formatDuration(119_999)).toBe("00:01:59");
+  });
 });
 
 describe("rankLabel", () => {

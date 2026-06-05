@@ -40,6 +40,12 @@ create table if not exists result_entries (
   unique (event_slug, division_code, bib)
 );
 
+alter table result_entries
+  drop constraint if exists result_entries_status_check;
+alter table result_entries
+  add constraint result_entries_status_check
+  check (status in ('FINISHED', 'DNF', 'DNS', 'DSQ'));
+
 create table if not exists split_entries (
   id bigint generated always as identity primary key,
   event_slug text not null,
@@ -59,8 +65,18 @@ create table if not exists split_entries (
 
 create index if not exists result_entries_event_rank_idx
   on result_entries(event_slug, division_code, final_rank nulls last, final_time_ms nulls last);
+create index if not exists result_entries_event_status_idx
+  on result_entries(event_slug, status, final_rank nulls last, final_time_ms nulls last);
 create index if not exists result_entries_search_trgm_idx
   on result_entries using gin ((bib || ' ' || display_name || ' ' || coalesce(school, '') || ' ' || coalesce(team_name, '')) gin_trgm_ops);
+create index if not exists result_entries_bib_trgm_idx
+  on result_entries using gin (bib gin_trgm_ops);
+create index if not exists result_entries_display_name_trgm_idx
+  on result_entries using gin (display_name gin_trgm_ops);
+create index if not exists result_entries_school_trgm_idx
+  on result_entries using gin (school gin_trgm_ops);
+create index if not exists result_entries_team_name_trgm_idx
+  on result_entries using gin (team_name gin_trgm_ops);
 create index if not exists split_entries_result_idx
   on split_entries(event_slug, division_code, bib, split_order);
 

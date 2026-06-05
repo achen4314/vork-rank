@@ -7,8 +7,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: { bib: string } }) {
   const url = new URL(request.url);
-  const divisionCode = url.searchParams.get("division") ?? "";
+  const divisionCode = url.searchParams.get("division")?.trim() ?? "";
   const bib = decodeURIComponent(context.params.bib);
+  if (!divisionCode) {
+    return NextResponse.json({ error: "division is required to avoid ambiguous bib matches." }, { status: 400 });
+  }
 
   const body = await loadResultDetail(bib, divisionCode);
   if (body) return NextResponse.json(body);

@@ -1,7 +1,7 @@
 export function formatDuration(ms: number | null | undefined): string {
   if (ms === null || ms === undefined || !Number.isFinite(ms)) return "-";
   const sign = ms < 0 ? "-" : "";
-  const value = Math.abs(Math.round(ms));
+  const value = Math.floor(Math.abs(ms));
   const totalSeconds = Math.floor(value / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

@@ -1,5 +1,6 @@
-import { RotateCcw, Search } from "lucide-react";
+import { RotateCcw, Search, X } from "lucide-react";
 import type { RankFilterState } from "@/components/rankTypes";
+import { statusFilterOptions } from "@/lib/status";
 import type { RankingFilters } from "@/lib/types";
 
 type RankFiltersProps = {
@@ -20,16 +21,28 @@ export default function RankFilters({
   onReset,
 }: RankFiltersProps) {
   return (
-    <section className="grid gap-3 rounded border border-[var(--line)] bg-white p-3 shadow-sm lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.7fr_auto]">
+    <section className="grid gap-3 rounded border border-[var(--line)] bg-white p-3 shadow-sm xl:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr_auto]">
       <label className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
         <input
+          type="search"
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="姓名 / 号码 / 学校"
+          placeholder="输入姓名或号码"
           aria-label="搜索"
-          className="h-11 w-full rounded border border-[var(--line)] bg-white pl-9 pr-3 text-[var(--ink)]"
+          className="h-11 w-full rounded border border-[var(--line)] bg-white pl-9 pr-10 text-[var(--ink)]"
         />
+        {searchValue ? (
+          <button
+            type="button"
+            title="清除搜索"
+            aria-label="清除搜索"
+            onClick={() => onSearchChange("")}
+            className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded text-[var(--muted)] transition hover:bg-[var(--brand-soft)] hover:text-[var(--brand-navy)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </label>
       <Select value={filters.group} onChange={(group) => onFilterChange("group", group)} options={options.groups} label="组别" />
       <Select value={filters.project} onChange={(project) => onFilterChange("project", project)} options={options.projects} label="项目" />
@@ -45,9 +58,11 @@ export default function RankFilters({
         aria-label="状态"
         className={selectClassName}
       >
-        <option value="">全部</option>
-        <option value="ranked">已排名</option>
-        <option value="penalty">有罚时</option>
+        {statusFilterOptions.map((option) => (
+          <option key={option.value || "all"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
       </select>
       <button
         type="button"

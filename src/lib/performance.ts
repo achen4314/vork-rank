@@ -198,7 +198,7 @@ function buildJudgingDecision(result: ResultEntry | null): JudgingDecision {
       reasons: [],
     };
   }
-  const reasons = splitReasons(result.note || result.penaltyStatus);
+  const reasons = splitReasons([result.penaltyStatus, result.note].filter(Boolean).join("；"));
   const penaltyText = result.appliedPenaltyText || formatDuration(result.appliedPenaltyMs);
   const cumulativePenaltyText = result.cumulativePenaltyText || formatDuration(result.cumulativePenaltyMs);
   const status = `${result.status} ${result.penaltyStatus} ${result.note}`.toLowerCase();

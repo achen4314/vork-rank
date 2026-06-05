@@ -41,7 +41,7 @@ export default function RankHeader({ data, isLoading }: { data: ResultListRespon
               <Metric label="总人数" value={data?.summary.total ?? "-"} />
               <Metric label="已排名" value={data?.summary.ranked ?? "-"} />
               <Metric label="罚时" value={data?.summary.appliedPenaltyCount ?? "-"} />
-              <Metric label="数据源" value={data?.source === "supabase" ? "Supabase" : data ? "本地" : "-"} />
+              <Metric label="数据状态" value={data?.source === "supabase" ? "实时同步" : data ? "静态兜底" : "-"} />
             </>
           )}
         </div>

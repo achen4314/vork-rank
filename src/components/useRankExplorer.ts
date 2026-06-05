@@ -31,11 +31,12 @@ export function useRankExplorer() {
   const lastDebouncedSearch = useRef(debouncedSearch);
 
   useEffect(() => {
-    if (lastDebouncedSearch.current === debouncedSearch) return;
-    lastDebouncedSearch.current = debouncedSearch;
+    const trimmedSearch = debouncedSearch.trim();
+    if (lastDebouncedSearch.current === trimmedSearch) return;
+    lastDebouncedSearch.current = trimmedSearch;
     setPage(1);
     setSelected(null);
-    setFilters((current) => (current.q === debouncedSearch ? current : { ...current, q: debouncedSearch }));
+    setFilters((current) => (current.q === trimmedSearch ? current : { ...current, q: trimmedSearch }));
   }, [debouncedSearch]);
 
   useEffect(() => {
@@ -120,9 +121,10 @@ export function useRankExplorer() {
   }, [data?.results, detail?.result, selected]);
 
   const updateFilter = useCallback((key: keyof RankFilterState, value: string) => {
+    const nextValue = value.trim();
     setPage(1);
     setSelected(null);
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => ({ ...current, [key]: nextValue }));
   }, []);
 
   const resetFilters = useCallback(() => {
@@ -233,10 +235,12 @@ function clampPageSize(value: number): number {
 }
 
 async function responseError(res: Response, fallback: string) {
+  const clone = res.clone();
   try {
     const body = (await res.json()) as { error?: string };
     return body.error ?? fallback;
   } catch {
-    return fallback;
+    const text = await clone.text().catch(() => "");
+    return text ? `${fallback}: ${text.slice(0, 160)}` : fallback;
   }
 }
