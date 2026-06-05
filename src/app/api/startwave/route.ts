@@ -119,6 +119,10 @@ export async function POST(request: Request) {
 
     const athlete = athletes[0];
     const entries = (entriesByAthlete.get(athlete.id) ?? []).map(rowToEntry).sort(compareEntries);
+    if (!entries.length) {
+      const fallback = await queryStaticStartwave(event, name, suffix);
+      if (fallback?.success && fallback.entries.length) return json(fallback);
+    }
     return json({
       success: true,
       event: {

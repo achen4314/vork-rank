@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 
 const EVENT_ZONE_COUNT = 6;
+const TIMING_TOLERANCE_MS = 1000;
 
 export function buildResultDetailResponse(
   source: "supabase" | "static",
@@ -53,6 +54,8 @@ function buildWorkout(splits: SplitEntry[]): { workoutSummary: WorkoutSummary; r
     EVENT_ZONE_COUNT,
     ...[...runByZone.keys(), ...stationByZone.keys(), ...totalByZone.keys()],
   );
+  const aggregateMode = detectAggregateMode(totalByZone, runByZone, stationByZone, maxKnownZone);
+  let previousAggregateMs: number | null = null;
   const sections: WorkoutSection[] = [];
   const replayBase: ReplayStep[] = [];
 
@@ -63,14 +66,16 @@ function buildWorkout(splits: SplitEntry[]): { workoutSummary: WorkoutSummary; r
     const runMs = run?.splitTimeMs ?? null;
     const stationMs = station?.splitTimeMs ?? null;
     const aggregateMs = aggregate?.splitTimeMs ?? null;
+    const zoneAggregateMs = aggregateMode === "cumulative" ? cumulativeToIntervalMs(aggregateMs, previousAggregateMs) : aggregateMs;
+    if (aggregateMode === "cumulative" && isValidMs(aggregateMs)) previousAggregateMs = aggregateMs;
     const missing: string[] = [];
     if (!run) missing.push(`跑步${zone}`);
     if (!station) missing.push(`项目${zone}`);
     if (!aggregate) missing.push(`第${zone}区`);
 
-    const transitionMs = inferTransitionMs(runMs, stationMs, aggregateMs);
-    const totalMs = aggregateMs ?? sumKnown([runMs, stationMs, transitionMs]);
-    const hasTimingConflict = hasConflict(runMs, stationMs, aggregateMs);
+    const transitionMs = inferTransitionMs(runMs, stationMs, zoneAggregateMs);
+    const totalMs = zoneAggregateMs ?? sumKnown([runMs, stationMs, transitionMs]);
+    const hasTimingConflict = hasConflict(runMs, stationMs, zoneAggregateMs);
 
     const section: WorkoutSection = {
       zone,
@@ -84,9 +89,9 @@ function buildWorkout(splits: SplitEntry[]): { workoutSummary: WorkoutSummary; r
       transitionLabel: "Roxzone 换项",
       transitionTimeMs: transitionMs,
       transitionTimeText: formatDuration(transitionMs),
-      totalLabel: aggregate?.splitLabel ?? `第${zone}区`,
+      totalLabel: aggregate && aggregateMode === "cumulative" ? `${aggregate.splitLabel}区间` : aggregate?.splitLabel ?? `第${zone}区`,
       totalTimeMs: totalMs,
-      totalTimeText: aggregate?.splitTimeText || formatDuration(totalMs),
+      totalTimeText: aggregate && aggregateMode === "interval" ? aggregate.splitTimeText || formatDuration(totalMs) : formatDuration(totalMs),
       missing,
       hasTimingConflict,
     };
@@ -98,13 +103,13 @@ function buildWorkout(splits: SplitEntry[]): { workoutSummary: WorkoutSummary; r
       replayBase.push(baseStep(`transition-${zone}`, zone, section.transitionLabel, "transition", transitionMs, false));
     }
     if (aggregate && (run || station) && (!run || !station)) {
-      const residualMs = aggregateMs === null ? null : aggregateMs - (runMs ?? 0) - (stationMs ?? 0);
+      const residualMs = zoneAggregateMs === null ? null : zoneAggregateMs - (runMs ?? 0) - (stationMs ?? 0);
       if (residualMs !== null && residualMs > 1000) {
         replayBase.push(baseStep(`aggregate-residual-${zone}`, zone, `${aggregate.splitLabel}未拆分余量`, "aggregate", residualMs, false));
       }
     }
     if (!run && !station && aggregate) {
-      replayBase.push(baseStep(`aggregate-${zone}`, zone, aggregate.splitLabel, "aggregate", aggregateMs, false));
+      replayBase.push(baseStep(`aggregate-${zone}`, zone, aggregate.splitLabel, "aggregate", zoneAggregateMs, false));
     }
   }
 
@@ -123,6 +128,48 @@ function buildWorkout(splits: SplitEntry[]): { workoutSummary: WorkoutSummary; r
   };
 
   return { workoutSummary, raceReplay };
+}
+
+function detectAggregateMode(
+  totalByZone: Map<number, SplitEntry>,
+  runByZone: Map<number, SplitEntry>,
+  stationByZone: Map<number, SplitEntry>,
+  maxKnownZone: number,
+): "interval" | "cumulative" {
+  let intervalVotes = 0;
+  let cumulativeVotes = 0;
+  let monotonicAggregatePairs = 0;
+  let previousAggregateMs: number | null = null;
+
+  for (let zone = 1; zone <= maxKnownZone; zone += 1) {
+    const aggregateMs = validMs(totalByZone.get(zone)?.splitTimeMs);
+    if (aggregateMs === null) continue;
+
+    const segmentMs = sumKnown([validMs(runByZone.get(zone)?.splitTimeMs), validMs(stationByZone.get(zone)?.splitTimeMs)]);
+    if (previousAggregateMs !== null && aggregateMs < previousAggregateMs - TIMING_TOLERANCE_MS) {
+      intervalVotes += 2;
+    } else if (previousAggregateMs !== null) {
+      monotonicAggregatePairs += 1;
+    }
+    if (zone > 1 && segmentMs !== null) {
+      if (nearlyEqual(aggregateMs, segmentMs)) intervalVotes += 1;
+      else if (previousAggregateMs !== null && aggregateMs > segmentMs + TIMING_TOLERANCE_MS && aggregateMs >= previousAggregateMs) {
+        cumulativeVotes += 1;
+      }
+    }
+
+    previousAggregateMs = aggregateMs;
+  }
+
+  if (intervalVotes === 0 && cumulativeVotes === 0 && monotonicAggregatePairs > 0) return "cumulative";
+  return cumulativeVotes > intervalVotes ? "cumulative" : "interval";
+}
+
+function cumulativeToIntervalMs(aggregateMs: number | null, previousAggregateMs: number | null): number | null {
+  if (!isValidMs(aggregateMs)) return null;
+  if (!isValidMs(previousAggregateMs)) return aggregateMs;
+  const intervalMs = aggregateMs - previousAggregateMs;
+  return intervalMs >= -TIMING_TOLERANCE_MS ? Math.max(0, intervalMs) : aggregateMs;
 }
 
 function parseSplit(label: string): { kind: "run" | "station" | "aggregate" | "extra"; zone: number | null } {
@@ -150,6 +197,18 @@ function hasConflict(runMs: number | null, stationMs: number | null, aggregateMs
 function sumKnown(values: Array<number | null>): number | null {
   const known = values.filter((value): value is number => value !== null);
   return known.length ? known.reduce((total, value) => total + value, 0) : null;
+}
+
+function validMs(value: number | null | undefined): number | null {
+  return isValidMs(value) ? value : null;
+}
+
+function isValidMs(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function nearlyEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= TIMING_TOLERANCE_MS;
 }
 
 function baseStep(
