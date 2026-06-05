@@ -26,6 +26,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "weekly",
         priority: 1,
       },
+      {
+        url: `${siteUrl}/startwave`,
+        lastModified: updatedAt,
+        changeFrequency: "weekly",
+        priority: 0.9,
+      },
       ...rankedDetails,
     ];
   } catch {
@@ -35,6 +41,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: now,
         changeFrequency: "weekly",
         priority: 1,
+      },
+      {
+        url: `${siteUrl}/startwave`,
+        lastModified: now,
+        changeFrequency: "weekly",
+        priority: 0.9,
       },
     ];
   }

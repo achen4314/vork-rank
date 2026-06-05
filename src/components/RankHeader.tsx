@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { GridIcon } from "@/components/Icons";
 import Metric from "@/components/Metric";
 import type { ResultListResponse } from "@/lib/types";
 
@@ -28,6 +30,13 @@ export default function RankHeader({ data, isLoading }: { data: ResultListRespon
             </h1>
           </div>
         </div>
+        <Link
+          href="/startwave"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded border border-[var(--brand-navy)] bg-white px-3 text-sm font-bold text-[var(--brand-navy)] transition hover:bg-[var(--brand-soft)]"
+        >
+          <GridIcon className="h-4 w-4" />
+          出发查询
+        </Link>
         <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 xl:grid-cols-5">
           {showSkeleton ? (
             <>

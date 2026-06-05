@@ -205,3 +205,69 @@ export type ResultDetailResponse = {
   rankContext: RankContext;
   chartAnalytics: ChartAnalytics;
 };
+
+export type StartwaveEntry = {
+  projectName: string;
+  waveLabel: string;
+  startDate: string;
+  startTime: string;
+  startDatetime: string;
+  bibOrChip: string;
+  teamCode: string | null;
+  teamName: string | null;
+  memberIndex: number | null;
+  gender: string | null;
+  division: string;
+  organization: string | null;
+};
+
+export type StartwaveRequest = {
+  name: string;
+  phoneSuffix?: string;
+  event?: string;
+};
+
+export type StartwaveCandidate = {
+  name: string;
+  projects: string[];
+};
+
+export type StartwaveSuccessResponse = {
+  success: true;
+  event: {
+    slug: string;
+    name: string;
+    date: string;
+    venue: string;
+  };
+  athlete: {
+    name: string;
+    phoneMasked: string | null;
+  };
+  entries: StartwaveEntry[];
+};
+
+export type StartwaveNotFoundResponse = {
+  success: false;
+  multiple?: false;
+  message: string;
+};
+
+export type StartwaveMultipleResponse = {
+  success: false;
+  multiple: true;
+  message: string;
+  candidates: StartwaveCandidate[];
+};
+
+export type StartwaveErrorResponse = {
+  success: false;
+  message: string;
+  error?: string;
+};
+
+export type StartwaveResponse =
+  | StartwaveSuccessResponse
+  | StartwaveNotFoundResponse
+  | StartwaveMultipleResponse
+  | StartwaveErrorResponse;
