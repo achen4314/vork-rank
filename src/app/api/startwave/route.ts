@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeStartwaveSuffix, queryStaticStartwave } from "@/lib/startwaveStatic";
 import type { StartwaveEntry, StartwaveResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -72,14 +73,14 @@ export async function POST(request: Request) {
     return json({ success: false, message: "赛事参数无效" }, 400);
   }
 
-  const suffix = normalizeSuffix(body.value.phoneSuffix);
+  const suffix = normalizeStartwaveSuffix(body.value.phoneSuffix);
   if (suffix === null) {
-    return json({ success: false, message: "后四位需为 4 位数字" }, 400);
+    return json({ success: false, message: "后四位需为 4 位数字或字母" }, 400);
   }
 
   const db = await getDb();
   if (!db) {
-    return json({ success: false, message: "服务暂时不可用，请稍后重试" }, 503);
+    return fallbackOrStatus(event, name, suffix, "服务暂时不可用，请稍后重试", 503);
   }
 
   try {
@@ -87,19 +88,20 @@ export async function POST(request: Request) {
     if (athletesResult.error) {
       const status = missingStartwaveTable(athletesResult.error.code) ? 503 : 500;
       const message = status === 503 ? "出发名单正在同步，请稍后重试" : "查询失败，请稍后重试";
-      return json({ success: false, message }, status);
+      return fallbackOrStatus(event, name, suffix, message, status);
     }
 
     const athletes = athletesResult.data ?? [];
     if (!athletes.length) {
-      return json({ success: false, message: `未找到 "${name}" 的报名记录，请检查姓名是否正确` });
+      const fallback = await queryStaticStartwave(event, name, suffix);
+      return json(fallback ?? { success: false, message: `未找到 "${name}" 的报名记录，请检查姓名是否正确` });
     }
 
     const entriesResult = await fetchEntries(db, event, athletes.map((athlete) => athlete.id));
     if (entriesResult.error) {
       const status = missingStartwaveTable(entriesResult.error.code) ? 503 : 500;
       const message = status === 503 ? "出发名单正在同步，请稍后重试" : "查询失败，请稍后重试";
-      return json({ success: false, message }, status);
+      return fallbackOrStatus(event, name, suffix, message, status);
     }
     const entriesByAthlete = groupEntriesByAthlete(entriesResult.data ?? []);
 
@@ -133,7 +135,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    return json({ success: false, message: "服务器错误，请稍后重试", error: message }, 500);
+    const fallback = await queryStaticStartwave(event, name, suffix);
+    return json(fallback ?? { success: false, message: "服务器错误，请稍后重试", error: message }, fallback ? 200 : 500);
   }
 }
 
@@ -216,15 +219,13 @@ function missingStartwaveTable(code: string | undefined): boolean {
   return code === "42P01" || code === "PGRST205";
 }
 
-function normalizeSuffix(value: unknown): string | undefined | null {
-  if (value === undefined || value === null || value === "") return undefined;
-  const text = String(value).trim();
-  if (!text) return undefined;
-  return /^\d{4}$/.test(text) ? text : null;
-}
-
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+async function fallbackOrStatus(event: string, name: string, suffix: string | undefined, message: string, status: number) {
+  const fallback = await queryStaticStartwave(event, name, suffix);
+  return json(fallback ?? { success: false, message }, fallback ? 200 : status);
 }
 
 function json(body: StartwaveResponse, status = 200) {

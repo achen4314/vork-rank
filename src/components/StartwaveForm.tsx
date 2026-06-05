@@ -54,11 +54,12 @@ export default function StartwaveForm({ loading, onSubmit }: StartwaveFormProps)
         <input
           type="text"
           value={phoneSuffix}
-          onChange={(event) => setPhoneSuffix(event.target.value.replace(/\D/g, "").slice(0, 4))}
-          placeholder="5678"
+          onChange={(event) => setPhoneSuffix(event.target.value.replace(/[^0-9a-zA-Z]/g, "").toUpperCase().slice(0, 4))}
+          placeholder="5678 / 481X"
           maxLength={4}
-          inputMode="numeric"
+          inputMode="text"
           autoComplete="off"
+          autoCapitalize="characters"
           className="h-12 w-full min-w-0 rounded border border-[var(--line)] bg-white px-4 font-mono text-base tracking-widest text-[var(--ink)] transition placeholder:text-[var(--muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--brand-lime)]"
         />
       </label>
