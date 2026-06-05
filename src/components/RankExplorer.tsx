@@ -1,13 +1,17 @@
 "use client";
 
-import { RotateCcw, Search } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowUpRight, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { RaceReplay } from "@/components/PerformanceBlocks";
 import { compactText, formatDuration, rankLabel } from "@/lib/format";
 import type { ResultDetailResponse, ResultEntry, ResultListResponse } from "@/lib/types";
 
 const empty = { q: "", group: "", project: "", division: "", status: "" };
 
 export default function RankExplorer() {
+  const router = useRouter();
   const [filters, setFilters] = useState(empty);
   const [data, setData] = useState<ResultListResponse | null>(null);
   const [selected, setSelected] = useState<ResultEntry | null>(null);
@@ -61,6 +65,7 @@ export default function RankExplorer() {
 
   const options = useMemo(() => data?.filters ?? { groups: [], projects: [], divisions: [] }, [data]);
   const updateFilter = (key: keyof typeof filters, value: string) => setFilters((current) => ({ ...current, [key]: value }));
+  const openEntry = (entry: ResultEntry) => router.push(resultHref(entry));
 
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
@@ -147,7 +152,16 @@ export default function RankExplorer() {
                   {(data?.results ?? []).map((entry) => (
                     <tr
                       key={`${entry.divisionCode}-${entry.bib}`}
-                      onClick={() => setSelected(entry)}
+                      role="link"
+                      tabIndex={0}
+                      title="打开完整详情"
+                      onClick={() => openEntry(entry)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openEntry(entry);
+                        }
+                      }}
                       className={`cursor-pointer border-b border-[var(--line)] transition hover:bg-[var(--brand-soft)] ${
                         selected && sameEntry(selected, entry) ? "bg-[var(--brand-soft)] shadow-[inset_4px_0_0_var(--brand-lime)]" : ""
                       }`}
@@ -194,18 +208,43 @@ export default function RankExplorer() {
                   <Metric label="净成绩" value={selected.netTimeText || formatDuration(selected.netTimeMs)} />
                   <Metric label="应用罚时" value={selected.appliedPenaltyText || formatDuration(selected.appliedPenaltyMs)} />
                 </div>
+                <Link
+                  href={resultHref(selected)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded border border-[var(--brand-navy)] bg-[var(--brand-lime)] px-3 text-sm font-bold text-[var(--brand-navy)] transition hover:bg-white"
+                >
+                  <ArrowUpRight className="h-4 w-4" />
+                  完整详情页
+                </Link>
                 <div className="rounded border border-[var(--line)] p-3 text-sm">
                   <p className="font-bold text-[var(--brand-navy)]">违例/复核</p>
-                  <p className="mt-1 text-[var(--muted)]">{compactText(selected.note || selected.penaltyStatus, "无")}</p>
+                  <p className="mt-1 text-[var(--muted)]">
+                    {detail?.judgingDecision.label
+                      ? `${detail.judgingDecision.label}：${compactText(detail.judgingDecision.reasons[0], "无")}`
+                      : compactText(selected.note || selected.penaltyStatus, "无")}
+                  </p>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {(detail?.splits ?? []).map((split) => (
-                    <div key={split.splitKey} className="flex items-center justify-between border-b border-[var(--line)] py-2 text-sm">
-                      <span>{split.splitLabel}</span>
-                      <strong>{split.splitTimeText || formatDuration(split.splitTimeMs)}</strong>
-                    </div>
-                  ))}
-                </div>
+                {detail?.raceReplay.length ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-bold text-[var(--brand-navy)]">Race Replay</p>
+                    <RaceReplay steps={detail.raceReplay} compact />
+                  </div>
+                ) : null}
+                {detail?.workoutSummary.sections.length ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-bold text-[var(--brand-navy)]">Workout Summary</p>
+                    {detail.workoutSummary.sections.slice(0, 6).map((section) => (
+                      <div key={section.zone} className="rounded border border-[var(--line)] px-3 py-2 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <strong className="text-[var(--brand-navy)]">{section.label}</strong>
+                          <span>{section.totalTimeText}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          跑 {section.runTimeText} / 项 {section.stationTimeText} / 换 {section.transitionTimeText}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-[var(--muted)]">暂无数据</p>
@@ -251,6 +290,10 @@ function Select({
 
 function sameEntry(a: Pick<ResultEntry, "bib" | "divisionCode">, b: Pick<ResultEntry, "bib" | "divisionCode">) {
   return a.bib === b.bib && a.divisionCode === b.divisionCode;
+}
+
+function resultHref(entry: Pick<ResultEntry, "bib" | "divisionCode">) {
+  return `/results/${encodeURIComponent(entry.divisionCode)}/${encodeURIComponent(entry.bib)}`;
 }
 
 async function responseError(res: Response, fallback: string) {

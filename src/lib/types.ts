@@ -45,6 +45,68 @@ export type SplitEntry = {
   splitTimeText: string;
 };
 
+export type WorkoutSection = {
+  zone: number;
+  label: string;
+  runLabel: string;
+  runTimeMs: number | null;
+  runTimeText: string;
+  stationLabel: string;
+  stationTimeMs: number | null;
+  stationTimeText: string;
+  transitionLabel: string;
+  transitionTimeMs: number | null;
+  transitionTimeText: string;
+  totalLabel: string;
+  totalTimeMs: number | null;
+  totalTimeText: string;
+  missing: string[];
+  hasTimingConflict: boolean;
+};
+
+export type ReplayStep = {
+  id: string;
+  zone: number | null;
+  label: string;
+  kind: "run" | "station" | "transition" | "aggregate" | "extra";
+  timeMs: number | null;
+  timeText: string;
+  cumulativeMs: number | null;
+  cumulativeText: string;
+  widthPct: number;
+  missing: boolean;
+};
+
+export type WorkoutSummary = {
+  sections: WorkoutSection[];
+  extras: ReplayStep[];
+  replayTotalMs: number;
+  replayTotalText: string;
+  missingCount: number;
+  conflictCount: number;
+};
+
+export type JudgingDecision = {
+  label: string;
+  tone: "clear" | "review" | "penalty" | "unranked";
+  penaltyText: string;
+  cumulativePenaltyText: string;
+  reasons: string[];
+};
+
+export type RankBucket = {
+  label: string;
+  rank: number | null;
+  total: number;
+};
+
+export type RankContext = {
+  overall: RankBucket;
+  gender: RankBucket;
+  group: RankBucket;
+  division: RankBucket;
+};
+
 export type RankingSummary = {
   total: number;
   ranked: number;
@@ -84,4 +146,8 @@ export type ResultDetailResponse = {
   source: "supabase" | "static";
   result: ResultEntry | null;
   splits: SplitEntry[];
+  workoutSummary: WorkoutSummary;
+  raceReplay: ReplayStep[];
+  judgingDecision: JudgingDecision;
+  rankContext: RankContext;
 };

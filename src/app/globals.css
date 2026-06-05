@@ -58,3 +58,21 @@ select:focus-visible {
     transparent 54px
   );
 }
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-surface {
+    max-width: none !important;
+  }
+}

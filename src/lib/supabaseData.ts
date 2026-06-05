@@ -99,7 +99,12 @@ export async function getSupabaseDetail(bib: string, divisionCode: string) {
     .eq("division_code", result.divisionCode)
     .eq("bib", result.bib)
     .order("split_order", { ascending: true });
-  return { result, splits: (splitRows ?? []).map(rowToSplit) };
+  const { data: rankRows } = await db.from("result_entries").select("*").eq("event_slug", result.eventSlug);
+  return {
+    result,
+    splits: (splitRows ?? []).map(rowToSplit),
+    rankingPool: (rankRows ?? [resultRow]).map(rowToResult),
+  };
 }
 
 function rowToResult(row: any): ResultEntry {
