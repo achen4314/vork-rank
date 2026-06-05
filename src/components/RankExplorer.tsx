@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
@@ -95,10 +96,10 @@ export default function RankExplorer() {
           <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <div className="grid h-14 w-20 shrink-0 place-items-center rounded-sm bg-[var(--brand-navy)] p-2">
-                <img src="/brand/vork-mark-lime.png" alt="VORK 图形标" className="h-auto w-full" />
+                <Image src="/brand/vork-mark-lime.png" alt="VORK 图形标" width={358} height={188} priority className="h-auto w-full" />
               </div>
               <div className="min-w-0">
-                <img src="/brand/vork-wordmark.png" alt="VORK" className="h-5 w-auto" />
+                <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority className="h-5 w-auto" />
                 <h1 className="mt-2 text-2xl font-black leading-tight text-[var(--brand-navy)] sm:text-3xl">
                   {data?.event.name ?? "首都高校体能竞速邀请赛"}
                 </h1>
@@ -257,7 +258,7 @@ export default function RankExplorer() {
                     <p className="text-sm text-[var(--muted)]">{selected.divisionName}</p>
                   </div>
                   <div className="grid h-12 w-12 place-items-center rounded bg-[var(--brand-navy)] p-2">
-                    <img src="/brand/vork-mark-lime.png" alt="" className="h-auto w-full" />
+                    <Image src="/brand/vork-mark-lime.png" alt="" width={358} height={188} className="h-auto w-full" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">

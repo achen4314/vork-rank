@@ -5,9 +5,13 @@ import type { ResultDetailResponse } from "@/lib/types";
 
 export async function loadResultDetail(bib: string, divisionCode: string): Promise<ResultDetailResponse | null> {
   if (hasSupabaseConfig()) {
-    const detail = await getSupabaseDetail(bib, divisionCode);
-    if (detail) {
-      return buildResultDetailResponse("supabase", detail.result, detail.splits, detail.rankingPool);
+    try {
+      const detail = await getSupabaseDetail(bib, divisionCode);
+      if (detail) {
+        return buildResultDetailResponse("supabase", detail.result, detail.splits, detail.rankingPool);
+      }
+    } catch {
+      // Fall back to the static JSON snapshot when Supabase is temporarily unavailable.
     }
   }
 

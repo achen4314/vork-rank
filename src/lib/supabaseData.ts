@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { normalizeSearchTerm } from "@/lib/search";
 import type { EventInfo, RankingFilters, RankingSummary, ResultEntry, SplitEntry } from "@/lib/types";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,7 +71,9 @@ export async function querySupabaseResults(params: {
   if (params.division) query = query.eq("division_code", params.division);
   if (params.status === "ranked") query = query.not("final_rank", "is", null);
   if (params.status === "penalty") query = query.gt("applied_penalty_ms", 0);
-  const q = (params.q ?? "").trim().replace(/[,()]/g, " ");
+  const rawQ = (params.q ?? "").trim();
+  const q = normalizeSearchTerm(rawQ);
+  if (rawQ && !q) return { total: 0, results: [] };
   if (q) {
     query = query.or(`bib.ilike.%${q}%,display_name.ilike.%${q}%,school.ilike.%${q}%,team_name.ilike.%${q}%`);
   }

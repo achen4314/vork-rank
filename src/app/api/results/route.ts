@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const page = positiveInt(url.searchParams.get("page"), 1);
+  const page = Math.min(positiveInt(url.searchParams.get("page"), 1), 10_000);
   const pageSize = Math.min(positiveInt(url.searchParams.get("pageSize"), 25), 100);
   const params = {
     q: url.searchParams.get("q") ?? "",
@@ -25,23 +25,27 @@ export async function GET(request: Request) {
   };
 
   if (hasSupabaseConfig()) {
-    const [event, filters, queried] = await Promise.all([
-      fetchSupabaseEvent(),
-      fetchSupabaseFilters(),
-      querySupabaseResults(params),
-    ]);
-    if (event && filters && queried) {
-      const body: ResultListResponse = {
-        source: "supabase",
-        event,
-        summary: filters.summary,
-        filters: filters.filters,
-        page,
-        pageSize,
-        total: queried.total,
-        results: queried.results,
-      };
-      return NextResponse.json(body);
+    try {
+      const [event, filters, queried] = await Promise.all([
+        fetchSupabaseEvent(),
+        fetchSupabaseFilters(),
+        querySupabaseResults(params),
+      ]);
+      if (event && filters && queried) {
+        const body: ResultListResponse = {
+          source: "supabase",
+          event,
+          summary: filters.summary,
+          filters: filters.filters,
+          page,
+          pageSize,
+          total: queried.total,
+          results: queried.results,
+        };
+        return NextResponse.json(body);
+      }
+    } catch {
+      // Fall through to the bundled static data so a transient Supabase issue does not break the public site.
     }
   }
 

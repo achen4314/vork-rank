@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { normalizeSearchTerm } from "@/lib/search";
 import type { RankingDataset, ResultEntry } from "@/lib/types";
 
 let cache: RankingDataset | null = null;
@@ -26,14 +27,15 @@ export function queryStaticResults(params: {
   pageSize: number;
 }): { total: number; results: ResultEntry[] } {
   const dataset = getStaticDataset();
-  const q = (params.q ?? "").trim().toLowerCase();
+  const rawQ = (params.q ?? "").trim();
+  const q = normalizeSearchTerm(rawQ);
   const rows = dataset.results.filter((entry) => {
     if (params.group && entry.groupName !== params.group) return false;
     if (params.project && entry.projectName !== params.project) return false;
     if (params.division && entry.divisionCode !== params.division) return false;
     if (params.status === "ranked" && entry.finalRank === null) return false;
     if (params.status === "penalty" && entry.appliedPenaltyMs <= 0) return false;
-    if (!q) return true;
+    if (!q) return !rawQ;
     return [entry.bib, entry.displayName, entry.school, entry.teamName, entry.divisionName]
       .join(" ")
       .toLowerCase()

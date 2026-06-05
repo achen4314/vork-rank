@@ -16,12 +16,8 @@ export default function ShareButton() {
   }, []);
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setState("copied");
-    } catch {
-      setState("error");
-    }
+    const copied = await writeShareLink(window.location.href);
+    setState(copied ? "copied" : "error");
 
     if (resetTimer.current !== null) window.clearTimeout(resetTimer.current);
     resetTimer.current = window.setTimeout(() => setState("idle"), 1800);
@@ -38,4 +34,35 @@ export default function ShareButton() {
       {state === "copied" ? "已复制" : state === "error" ? "复制失败" : "复制链接"}
     </button>
   );
+}
+
+async function writeShareLink(value: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      // Continue to the textarea fallback below.
+    }
+  }
+
+  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+    activeElement?.focus();
+  }
 }
