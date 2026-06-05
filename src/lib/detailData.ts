@@ -8,7 +8,7 @@ export async function loadResultDetail(bib: string, divisionCode: string): Promi
     try {
       const detail = await getSupabaseDetail(bib, divisionCode);
       if (detail) {
-        return buildResultDetailResponse("supabase", detail.result, detail.splits, detail.rankingPool);
+        return buildResultDetailResponse("supabase", detail.result, detail.splits, detail.rankingPool, detail.divisionSplits);
       }
     } catch {
       // Fall back to the static JSON snapshot when Supabase is temporarily unavailable.
@@ -20,5 +20,5 @@ export async function loadResultDetail(bib: string, divisionCode: string): Promi
   const dataset = getStaticDataset();
   const detail = getStaticDetail(bib, divisionCode);
   if (!detail.result) return null;
-  return buildResultDetailResponse("static", detail.result, detail.splits, dataset.results);
+  return buildResultDetailResponse("static", detail.result, detail.splits, dataset.results, detail.divisionSplits);
 }

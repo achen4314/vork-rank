@@ -102,10 +102,18 @@ export async function getSupabaseDetail(bib: string, divisionCode: string) {
     .eq("division_code", result.divisionCode)
     .eq("bib", result.bib)
     .order("split_order", { ascending: true });
+  const { data: divisionSplitRows } = await db
+    .from("split_entries")
+    .select("*")
+    .eq("event_slug", result.eventSlug)
+    .eq("division_code", result.divisionCode)
+    .order("bib", { ascending: true })
+    .order("split_order", { ascending: true });
   const { data: rankRows } = await db.from("result_entries").select("*").eq("event_slug", result.eventSlug);
   return {
     result,
     splits: (splitRows ?? []).map(rowToSplit),
+    divisionSplits: (divisionSplitRows ?? splitRows ?? []).map(rowToSplit),
     rankingPool: (rankRows ?? [resultRow]).map(rowToResult),
   };
 }

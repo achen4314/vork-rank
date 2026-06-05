@@ -107,6 +107,57 @@ export type RankContext = {
   division: RankBucket;
 };
 
+export type StationRadarPoint = {
+  zone: number;
+  label: string;
+  athleteScore: number;
+  averageScore: number;
+  athletePercentile: number | null;
+  averagePercentile: number | null;
+  athleteTimeMs: number | null;
+  athleteTimeText: string;
+  averageTimeMs: number | null;
+  averageTimeText: string;
+  sampleSize: number;
+  missing: boolean;
+};
+
+export type TrendPoint = {
+  zone: number;
+  label: string;
+  athleteMs: number | null;
+  championMs: number | null;
+  averageMs: number | null;
+  athleteText: string;
+  championText: string;
+  averageText: string;
+  sampleSize: number;
+};
+
+export type SegmentBarPoint = {
+  zone: number;
+  label: string;
+  splitKey: string;
+  kind: "run" | "station";
+  athleteMs: number | null;
+  averageMs: number | null;
+  championMs: number | null;
+  deltaChampionMs: number | null;
+  athleteText: string;
+  averageText: string;
+  championText: string;
+  sampleSize: number;
+  missing: boolean;
+};
+
+export type ChartAnalytics = {
+  sampleSize: number;
+  divisionCode: string;
+  stationRadar: StationRadarPoint[];
+  cumulativeTrend: TrendPoint[];
+  segmentBars: SegmentBarPoint[];
+};
+
 export type RankingSummary = {
   total: number;
   ranked: number;
@@ -150,4 +201,5 @@ export type ResultDetailResponse = {
   raceReplay: ReplayStep[];
   judgingDecision: JudgingDecision;
   rankContext: RankContext;
+  chartAnalytics: ChartAnalytics;
 };

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PrintButton from "@/components/PrintButton";
 import { JudgingDecisionCard, RaceReplay, RankBuckets, WorkoutSummaryTable } from "@/components/PerformanceBlocks";
+import RadarChart from "@/components/RadarChart";
+import SegmentBars from "@/components/SegmentBars";
 import ShareButton from "@/components/ShareButton";
+import TrendChart from "@/components/TrendChart";
 import { compactText, formatDuration, rankLabel } from "@/lib/format";
 import { loadResultDetail } from "@/lib/detailData";
 
@@ -112,6 +115,13 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
         </section>
 
         <JudgingDecisionCard decision={detail.judgingDecision} />
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          <RadarChart analytics={detail.chartAnalytics} />
+          <TrendChart analytics={detail.chartAnalytics} />
+        </section>
+
+        <SegmentBars analytics={detail.chartAnalytics} />
 
         <section className="rounded border border-[var(--line)] bg-white p-4">
           <div className="flex flex-wrap items-end justify-between gap-3">

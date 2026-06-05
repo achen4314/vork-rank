@@ -56,5 +56,6 @@ export function getStaticDetail(bib: string, divisionCode: string) {
         (split) => split.bib === result.bib && split.divisionCode === result.divisionCode,
       )
     : [];
-  return { result, splits };
+  const divisionSplits = result ? dataset.splits.filter((split) => split.divisionCode === result.divisionCode) : [];
+  return { result, splits, divisionSplits };
 }

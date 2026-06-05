@@ -1,3 +1,4 @@
+import { buildChartAnalytics } from "@/lib/chartData";
 import { formatDuration } from "@/lib/format";
 import type {
   JudgingDecision,
@@ -18,6 +19,7 @@ export function buildResultDetailResponse(
   result: ResultEntry | null,
   splits: SplitEntry[],
   rankingPool: ResultEntry[],
+  comparisonSplits: SplitEntry[] = splits,
 ): ResultDetailResponse {
   const sortedSplits = [...splits].sort((a, b) => a.splitOrder - b.splitOrder);
   const { workoutSummary, raceReplay } = buildWorkout(sortedSplits);
@@ -29,6 +31,7 @@ export function buildResultDetailResponse(
     raceReplay,
     judgingDecision: buildJudgingDecision(result),
     rankContext: buildRankContext(result, rankingPool),
+    chartAnalytics: buildChartAnalytics(result, sortedSplits, comparisonSplits),
   };
 }
 
