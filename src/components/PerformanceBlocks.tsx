@@ -86,25 +86,34 @@ export function WorkoutSummaryTable({ summary, compact = false }: { summary: Wor
   );
 }
 
-export function JudgingDecisionCard({ decision }: { decision: JudgingDecision }) {
+export function JudgingDecisionCard({ decision, compact = false }: { decision: JudgingDecision; compact?: boolean }) {
+  const visibleReasons = compact ? decision.reasons.slice(0, 3) : decision.reasons;
+
   return (
-    <section className={`rounded border p-4 ${decisionClassName(decision.tone)}`}>
+    <section className={`rounded border ${compact ? "p-3" : "p-4"} ${decisionClassName(decision.tone)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Judging Decision</p>
-          <h2 className="mt-1 text-xl font-black text-[var(--brand-navy)]">{decision.label}</h2>
+          <h2 className={`mt-1 font-black text-[var(--brand-navy)] ${compact ? "text-lg" : "text-xl"}`}>{decision.label}</h2>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className={`grid grid-cols-2 gap-2 ${compact ? "text-xs" : "text-sm"}`}>
           <SmallMetric label="应用罚时" value={decision.penaltyText} />
           <SmallMetric label="累计罚时" value={decision.cumulativePenaltyText} />
         </div>
       </div>
-      <div className="mt-3 flex flex-col gap-2 text-sm text-[var(--ink)]">
-        {decision.reasons.map((reason, index) => (
-          <p key={`${index}-${reason}`} className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">
-            {reason}
-          </p>
-        ))}
+      <div className={`flex flex-col gap-2 text-[var(--ink)] ${compact ? "mt-2 text-xs" : "mt-3 text-sm"}`}>
+        {visibleReasons.length ? (
+          visibleReasons.map((reason, index) => (
+            <p key={`${index}-${reason}`} className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">
+              {reason}
+            </p>
+          ))
+        ) : (
+          <p className="rounded border border-[rgba(23,27,64,0.12)] bg-white px-3 py-2">无裁判判定记录</p>
+        )}
+        {compact && decision.reasons.length > visibleReasons.length ? (
+          <p className="text-[var(--muted)]">另有 {decision.reasons.length - visibleReasons.length} 条裁判记录，进入完整详情页查看。</p>
+        ) : null}
       </div>
     </section>
   );

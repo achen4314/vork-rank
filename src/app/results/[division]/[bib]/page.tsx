@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PrintButton from "@/components/PrintButton";
 import { JudgingDecisionCard, RaceReplay, RankBuckets, WorkoutSummaryTable } from "@/components/PerformanceBlocks";
+import ShareButton from "@/components/ShareButton";
 import { compactText, formatDuration, rankLabel } from "@/lib/format";
 import { loadResultDetail } from "@/lib/detailData";
 
@@ -58,7 +59,10 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
             <ArrowLeft className="h-4 w-4" />
             返回排行榜
           </Link>
-          <PrintButton />
+          <div className="flex flex-wrap items-center gap-2">
+            <ShareButton />
+            <PrintButton />
+          </div>
         </nav>
 
         <header className="overflow-hidden rounded border border-[var(--brand-navy)] bg-white">

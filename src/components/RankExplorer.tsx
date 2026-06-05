@@ -2,17 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, RotateCcw, Search } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { RaceReplay } from "@/components/PerformanceBlocks";
+import { JudgingDecisionCard, RaceReplay } from "@/components/PerformanceBlocks";
 import { compactText, formatDuration, rankLabel } from "@/lib/format";
 import type { ResultDetailResponse, ResultEntry, ResultListResponse } from "@/lib/types";
 
 const empty = { q: "", group: "", project: "", division: "", status: "" };
+const pageSizeOptions = [25, 50, 100];
 
 export default function RankExplorer() {
   const router = useRouter();
   const [filters, setFilters] = useState(empty);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [data, setData] = useState<ResultListResponse | null>(null);
   const [selected, setSelected] = useState<ResultEntry | null>(null);
   const [detail, setDetail] = useState<ResultDetailResponse | null>(null);
@@ -20,7 +23,7 @@ export default function RankExplorer() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams({ page: "1", pageSize: "25" });
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
@@ -30,8 +33,10 @@ export default function RankExplorer() {
         return res.json();
       })
       .then((body: ResultListResponse) => {
+        const nextTotalPages = Math.max(1, Math.ceil(body.total / (body.pageSize || pageSize)));
         setData(body);
         setError("");
+        if (page > nextTotalPages) setPage(nextTotalPages);
         setSelected((current) => {
           if (!current) return body.results[0] ?? null;
           return body.results.some((entry) => sameEntry(entry, current)) ? current : body.results[0] ?? null;
@@ -41,7 +46,7 @@ export default function RankExplorer() {
         if (err.name !== "AbortError") setError(err.message);
       });
     return () => controller.abort();
-  }, [filters]);
+  }, [filters, page, pageSize]);
 
   useEffect(() => {
     if (!selected) {
@@ -64,7 +69,22 @@ export default function RankExplorer() {
   }, [selected]);
 
   const options = useMemo(() => data?.filters ?? { groups: [], projects: [], divisions: [] }, [data]);
-  const updateFilter = (key: keyof typeof filters, value: string) => setFilters((current) => ({ ...current, [key]: value }));
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = Math.min(page * pageSize, total);
+  const updateFilter = (key: keyof typeof filters, value: string) => {
+    setPage(1);
+    setFilters((current) => ({ ...current, [key]: value }));
+  };
+  const resetFilters = () => {
+    setPage(1);
+    setFilters(empty);
+  };
+  const updatePageSize = (value: string) => {
+    setPageSize(Number(value));
+    setPage(1);
+  };
   const openEntry = (entry: ResultEntry) => router.push(resultHref(entry));
 
   return (
@@ -126,7 +146,7 @@ export default function RankExplorer() {
             type="button"
             title="重置"
             aria-label="重置筛选"
-            onClick={() => setFilters(empty)}
+            onClick={resetFilters}
             className="grid h-11 w-11 place-items-center rounded border border-[var(--brand-navy)] bg-[var(--brand-lime)] text-[var(--brand-navy)] transition hover:bg-white"
           >
             <RotateCcw className="h-4 w-4" />
@@ -187,6 +207,44 @@ export default function RankExplorer() {
                 </tbody>
               </table>
             </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--line)] px-3 py-3 text-sm">
+              <p className="text-[var(--muted)]">
+                共 <strong className="text-[var(--brand-navy)]">{total}</strong> 条，显示 {pageStart}-{pageEnd}，第{" "}
+                <strong className="text-[var(--brand-navy)]">{page}</strong> / {totalPages} 页
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={pageSize}
+                  onChange={(event) => updatePageSize(event.target.value)}
+                  aria-label="每页条数"
+                  className={`${selectClassName} w-32`}
+                >
+                  {pageSizeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option} / 页
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                  className={pagerButtonClassName}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  上一页
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                  className={pagerButtonClassName}
+                >
+                  下一页
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <aside className="rounded border border-[var(--line)] bg-white p-4 shadow-sm">
@@ -215,14 +273,14 @@ export default function RankExplorer() {
                   <ArrowUpRight className="h-4 w-4" />
                   完整详情页
                 </Link>
-                <div className="rounded border border-[var(--line)] p-3 text-sm">
-                  <p className="font-bold text-[var(--brand-navy)]">违例/复核</p>
-                  <p className="mt-1 text-[var(--muted)]">
-                    {detail?.judgingDecision.label
-                      ? `${detail.judgingDecision.label}：${compactText(detail.judgingDecision.reasons[0], "无")}`
-                      : compactText(selected.note || selected.penaltyStatus, "无")}
-                  </p>
-                </div>
+                {detail?.judgingDecision ? (
+                  <JudgingDecisionCard decision={detail.judgingDecision} compact />
+                ) : (
+                  <div className="rounded border border-[var(--line)] p-3 text-sm">
+                    <p className="font-bold text-[var(--brand-navy)]">Judging Decision</p>
+                    <p className="mt-1 text-[var(--muted)]">{compactText(selected.note || selected.penaltyStatus, "无")}</p>
+                  </div>
+                )}
                 {detail?.raceReplay.length ? (
                   <div className="flex flex-col gap-2">
                     <p className="text-sm font-bold text-[var(--brand-navy)]">Race Replay</p>
@@ -306,3 +364,5 @@ async function responseError(res: Response, fallback: string) {
 }
 
 const selectClassName = "h-11 rounded border border-[var(--line)] bg-white px-3 text-[var(--ink)]";
+const pagerButtonClassName =
+  "inline-flex h-11 items-center justify-center gap-1 rounded border border-[var(--line)] bg-white px-3 font-bold text-[var(--brand-navy)] transition hover:border-[var(--brand-navy)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--line)]";
