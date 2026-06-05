@@ -15,10 +15,10 @@ export async function loadResultDetail(bib: string, divisionCode: string): Promi
     }
   }
 
-  if (!hasStaticDataset()) return null;
+  if (!(await hasStaticDataset())) return null;
 
-  const dataset = getStaticDataset();
-  const detail = getStaticDetail(bib, divisionCode);
+  const dataset = await getStaticDataset();
+  const detail = await getStaticDetail(bib, divisionCode);
   if (!detail.result) return null;
   return buildResultDetailResponse("static", detail.result, detail.splits, dataset.results, detail.divisionSplits);
 }

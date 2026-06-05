@@ -41,7 +41,7 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
     return (
       <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
         <section className="mx-auto flex max-w-[960px] flex-col gap-4 rounded border border-[var(--line)] bg-white p-6">
-          <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority className="h-6 w-fit" />
+          <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority sizes="160px" className="h-6 w-fit" />
           <h1 className="text-2xl font-black text-[var(--brand-navy)]">未找到该选手成绩</h1>
           <Link href="/" className="inline-flex w-fit items-center gap-2 text-sm font-bold text-[var(--brand-navy)]">
             <ArrowLeft className="h-4 w-4" />
@@ -74,10 +74,18 @@ export default async function ResultDetailPage({ params }: DetailPageProps) {
           <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <div className="grid h-14 w-20 shrink-0 place-items-center rounded-sm bg-[var(--brand-navy)] p-2">
-                <Image src="/brand/vork-mark-lime.png" alt="VORK 图形标" width={358} height={188} priority className="h-auto w-full" />
+                <Image
+                  src="/brand/vork-mark-lime.png"
+                  alt="VORK 图形标"
+                  width={358}
+                  height={188}
+                  priority
+                  sizes="80px"
+                  className="h-auto w-full"
+                />
               </div>
               <div className="min-w-0">
-                <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority className="h-5 w-auto" />
+                <Image src="/brand/vork-wordmark.png" alt="VORK" width={439} height={94} priority sizes="140px" className="h-5 w-auto" />
                 <p className="mt-3 text-sm font-bold text-[var(--muted)]">{result.bib}</p>
                 <h1 className="text-3xl font-black leading-tight text-[var(--brand-navy)] sm:text-4xl">{result.displayName}</h1>
                 <p className="mt-1 text-sm text-[var(--muted)]">{result.divisionName}</p>

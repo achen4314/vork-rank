@@ -49,15 +49,15 @@ export async function GET(request: Request) {
     }
   }
 
-  if (!hasStaticDataset()) {
+  if (!(await hasStaticDataset())) {
     return NextResponse.json(
       { error: "Ranking data is not generated. Run pnpm run build:data or configure Supabase." },
       { status: 503 },
     );
   }
 
-  const dataset = getStaticDataset();
-  const queried = queryStaticResults(params);
+  const dataset = await getStaticDataset();
+  const queried = await queryStaticResults(params);
   const body: ResultListResponse = {
     source: "static",
     event: dataset.event,

@@ -13,7 +13,7 @@ export async function GET(request: Request, context: { params: { bib: string } }
   const body = await loadResultDetail(bib, divisionCode);
   if (body) return NextResponse.json(body);
 
-  if (!hasSupabaseConfig() && !hasStaticDataset()) {
+  if (!hasSupabaseConfig() && !(await hasStaticDataset())) {
     return NextResponse.json(
       { error: "Ranking data is not generated. Run pnpm run build:data or configure Supabase." },
       { status: 503 },

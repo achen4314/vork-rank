@@ -1,23 +1,29 @@
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { normalizeSearchTerm } from "@/lib/search";
 import type { RankingDataset, ResultEntry } from "@/lib/types";
 
 let cache: RankingDataset | null = null;
+let cachePromise: Promise<RankingDataset> | null = null;
+const dataFilePath = path.join(process.cwd(), "data", "rankings.json");
 
-export function getStaticDataset(): RankingDataset {
-  if (!cache) {
-    const filePath = path.join(process.cwd(), "data", "rankings.json");
-    cache = JSON.parse(fs.readFileSync(filePath, "utf8")) as RankingDataset;
-  }
+export async function getStaticDataset(): Promise<RankingDataset> {
+  if (cache) return cache;
+  cachePromise ??= fs.readFile(dataFilePath, "utf8").then((json) => JSON.parse(json) as RankingDataset);
+  cache = await cachePromise;
   return cache;
 }
 
-export function hasStaticDataset(): boolean {
-  return fs.existsSync(path.join(process.cwd(), "data", "rankings.json"));
+export async function hasStaticDataset(): Promise<boolean> {
+  try {
+    await fs.access(dataFilePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function queryStaticResults(params: {
+export async function queryStaticResults(params: {
   q?: string;
   group?: string;
   project?: string;
@@ -25,8 +31,8 @@ export function queryStaticResults(params: {
   status?: string;
   page: number;
   pageSize: number;
-}): { total: number; results: ResultEntry[] } {
-  const dataset = getStaticDataset();
+}): Promise<{ total: number; results: ResultEntry[] }> {
+  const dataset = await getStaticDataset();
   const rawQ = (params.q ?? "").trim();
   const q = normalizeSearchTerm(rawQ);
   const rows = dataset.results.filter((entry) => {
@@ -45,8 +51,8 @@ export function queryStaticResults(params: {
   return { total: rows.length, results: rows.slice(start, start + params.pageSize) };
 }
 
-export function getStaticDetail(bib: string, divisionCode: string) {
-  const dataset = getStaticDataset();
+export async function getStaticDetail(bib: string, divisionCode: string) {
+  const dataset = await getStaticDataset();
   const result =
     dataset.results.find(
       (entry) => entry.bib === bib && (!divisionCode || entry.divisionCode === divisionCode),

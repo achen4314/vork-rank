@@ -28,6 +28,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 img {
