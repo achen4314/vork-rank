@@ -37,6 +37,12 @@ export default function RankHeader({ data, isLoading }: { data: ResultListRespon
           <GridIcon className="h-4 w-4" />
           出发查询
         </Link>
+        <Link
+          href="/admin"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded border border-[var(--line)] bg-white px-3 text-xs font-bold text-[var(--muted)] transition hover:border-[var(--brand-navy)] hover:text-[var(--brand-navy)]"
+        >
+          管理
+        </Link>
         <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 xl:grid-cols-5">
           {showSkeleton ? (
             <>

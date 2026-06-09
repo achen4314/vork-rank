@@ -7,3 +7,5 @@ out
 .DS_Store
 *.log
 *.tsbuildinfo
+scripts/run-migration.js
+scripts/test-key.js
