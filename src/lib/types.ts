@@ -271,3 +271,173 @@ export type StartwaveResponse =
   | StartwaveNotFoundResponse
   | StartwaveMultipleResponse
   | StartwaveErrorResponse;
+
+// ============================================================
+// Registration System Types
+// ============================================================
+
+export type RegistrationStatus =
+  | "pending"
+  | "reviewed"
+  | "approved"
+  | "rejected"
+  | "bib_assigned"
+  | "wave_assigned"
+  | "confirmed"
+  | "checked_in"
+  | "racing"
+  | "finished"
+  | "cancelled";
+
+export type RegistrationProject =
+  | "单项测试"
+  | "男子单人"
+  | "女子单人"
+  | "男子双人"
+  | "女子双人"
+  | "混合4人";
+
+export type RegistrationTeamMember = {
+  name: string;
+  gender: string;
+  phone: string;
+  id_card?: string;
+  birth_date?: string;
+  organization?: string;
+};
+
+export type RegistrationEntry = {
+  id: number;
+  eventSlug: string;
+  name: string;
+  gender: string;
+  idCard: string | null;
+  phone: string;
+  email: string;
+  birthDate: string | null;
+  nationality: string;
+  organization: string | null;
+  emergencyName: string | null;
+  emergencyPhone: string | null;
+  project: string;
+  divisionHint: string | null;
+  teamName: string | null;
+  teammates: RegistrationTeamMember[] | null;
+  status: RegistrationStatus;
+  statusNote: string | null;
+  healthOk: boolean;
+  waiverOk: boolean;
+  medicalNote: string | null;
+  bib: string | null;
+  divisionCode: string | null;
+  waveLabel: string | null;
+  startTime: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+};
+
+export type RegistrationListResponse = {
+  data: RegistrationEntry[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type RegistrationFilters = {
+  status?: RegistrationStatus;
+  project?: string;
+  division?: string;
+  wave?: string;
+  q?: string;
+};
+
+export type RegistrationFormData = {
+  eventSlug: string;
+  name: string;
+  gender: string;
+  idCard?: string;
+  phone: string;
+  email: string;
+  birthDate?: string;
+  nationality?: string;
+  organization?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  project: string;
+  divisionHint?: string;
+  teamName?: string;
+  teammates?: RegistrationTeamMember[];
+  healthOk: boolean;
+  waiverOk: boolean;
+  medicalNote?: string;
+  verificationCode: string;
+};
+
+export type WaveEntry = {
+  id: number;
+  eventSlug: string;
+  waveLabel: string;
+  startTime: string;
+  intervalMin: number;
+  capacity: number;
+  enrolledCount: number;
+  projectFilter: string[] | null;
+  divisionFilter: string[] | null;
+  status: "planned" | "open" | "full" | "closed" | "finished";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminRole = "super_admin" | "manager" | "viewer";
+
+export type AdminEntry = {
+  id: number;
+  userId: string;
+  eventSlug: string | null;
+  role: AdminRole;
+  createdAt: string;
+};
+
+export type AuditLogEntry = {
+  id: number;
+  eventSlug: string;
+  tableName: string;
+  recordId: number | null;
+  action: string;
+  oldData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
+  performedBy: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
+export type DashboardStats = {
+  totalRegistrations: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  waveAssigned: number;
+  checkedIn: number;
+  byProject: { project: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  waveUtilization: { waveLabel: string; capacity: number; enrolled: number }[];
+};
+
+export type VerificationResponse = {
+  success: boolean;
+  message: string;
+};
+
+export type RegistrationStatusResponse = {
+  success: boolean;
+  message?: string;
+  registrations?: RegistrationEntry[];
+};
+
+export type RegistrationSubmitResponse = {
+  success: boolean;
+  message: string;
+  registrationId?: number;
+};
