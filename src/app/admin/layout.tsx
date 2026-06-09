@@ -34,6 +34,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   useEffect(() => {
+    // Skip auth check on login page
+    if (pathname === "/admin/login") {
+      setLoading(false);
+      return;
+    }
     (async () => {
       const { data } = await supabase.auth.getUser();
       if (!data.user) {
@@ -43,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setUserEmail(data.user.email ?? "");
       setLoading(false);
     })();
-  }, [supabase, router]);
+  }, [supabase, router, pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
