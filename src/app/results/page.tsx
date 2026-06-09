@@ -1,7 +1,12 @@
-import { redirect } from "next/navigation";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ResultsPage() {
-  redirect("/results/race-results");
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/results/race-results");
+  }, [router]);
+  return null;
 }

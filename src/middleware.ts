@@ -28,6 +28,11 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Redirect /results to /results/race-results
+  if (pathname === "/results") {
+    return NextResponse.redirect(new URL("/results/race-results", request.url));
+  }
+
   // Protect /admin/* routes
   if (pathname.startsWith("/admin")) {
     // Allow login page
@@ -82,5 +87,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/results", "/admin/:path*", "/api/admin/:path*"],
 };

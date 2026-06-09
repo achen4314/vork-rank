@@ -23,7 +23,7 @@ export const PUBLIC_NAV_ITEMS = [
   },
   {
     label: "成绩查询",
-    href: "/results",
+    href: "/results/race-results",
     description: "查询完赛成绩、排名、分段成绩与打印成绩单",
     emoji: "🏆",
   },
