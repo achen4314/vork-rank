@@ -5,12 +5,12 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useRouter } from "next/navigation";
 import { ShieldIcon } from "@/components/Icons";
 
-export const dynamic = "force-dynamic";
-
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [mode, setMode] = useState<"password" | "code">("password");
+  const [step, setStep] = useState<"form" | "code">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -20,6 +20,45 @@ export default function AdminLoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
+  // Password login
+  const handlePasswordLogin = async () => {
+    if (!email || !password) {
+      setError("请输入邮箱和密码");
+      return;
+    }
+    setLoading(true);
+    setError("");
+
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError || !data.user) {
+      setError(authError?.message ?? "登录失败");
+      setLoading(false);
+      return;
+    }
+
+    // Check admin role
+    const { data: admin } = await supabase
+      .from("admins")
+      .select("role, event_slug")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    if (!admin) {
+      await supabase.auth.signOut();
+      setError("您不是管理员");
+      setLoading(false);
+      return;
+    }
+
+    router.push("/admin");
+    router.refresh();
+  };
+
+  // Send verification code
   const sendCode = async () => {
     if (!email) {
       setError("请输入管理员邮箱");
@@ -41,9 +80,10 @@ export default function AdminLoginPage() {
     setLoading(false);
   };
 
+  // Verify code
   const verifyCode = async () => {
     if (!code) {
-      setError("请输入邮箱中的验证码");
+      setError("请输入验证码");
       return;
     }
     setLoading(true);
@@ -56,7 +96,7 @@ export default function AdminLoginPage() {
     });
 
     if (verifyError || !data.user) {
-      setError("验证失败，请检查验证码是否正确");
+      setError("验证失败");
       setLoading(false);
       return;
     }
@@ -69,7 +109,7 @@ export default function AdminLoginPage() {
 
     if (!admin) {
       await supabase.auth.signOut();
-      setError("您不是管理员，无权访问后台");
+      setError("您不是管理员");
       setLoading(false);
       return;
     }
@@ -86,12 +126,65 @@ export default function AdminLoginPage() {
             <ShieldIcon className="h-8 w-8 text-[var(--brand-navy)]" />
           </div>
           <h1 className="text-xl font-black text-[var(--brand-navy)]">管理员登录</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">Vork Rank 管理后台</p>
         </div>
 
-        {step === "email" ? (
+        {/* Mode toggle */}
+        <div className="mb-6 flex rounded border border-[var(--line)] bg-[var(--metric)] p-1">
+          <button
+            onClick={() => { setMode("password"); setStep("form"); setError(""); }}
+            className={`flex-1 rounded py-1.5 text-sm font-bold transition ${
+              mode === "password"
+                ? "bg-white text-[var(--brand-navy)] shadow-sm"
+                : "text-[var(--muted)]"
+            }`}
+          >
+            密码登录
+          </button>
+          <button
+            onClick={() => { setMode("code"); setStep("form"); setError(""); }}
+            className={`flex-1 rounded py-1.5 text-sm font-bold transition ${
+              mode === "code"
+                ? "bg-white text-[var(--brand-navy)] shadow-sm"
+                : "text-[var(--muted)]"
+            }`}
+          >
+            验证码登录
+          </button>
+        </div>
+
+        {mode === "password" ? (
           <>
-            <label className="mb-2 block text-sm font-medium text-[var(--ink)]">管理员邮箱</label>
+            <label className="mb-2 block text-sm font-medium text-[var(--ink)]">邮箱</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 w-full rounded border border-[var(--line)] px-3 text-[var(--ink)]"
+              placeholder="admin@example.com"
+            />
+            <label className="mb-2 mt-4 block text-sm font-medium text-[var(--ink)]">密码</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-11 w-full rounded border border-[var(--line)] px-3 text-[var(--ink)]"
+              placeholder="请输入密码"
+              onKeyDown={(e) => e.key === "Enter" && handlePasswordLogin()}
+            />
+            <button
+              type="button"
+              onClick={handlePasswordLogin}
+              disabled={loading}
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded 
+                         border-2 border-[var(--brand-navy)] bg-[var(--brand-navy)] px-6 
+                         font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "登录中..." : "登录"}
+            </button>
+          </>
+        ) : step === "form" ? (
+          <>
+            <label className="mb-2 block text-sm font-medium text-[var(--ink)]">邮箱</label>
             <input
               type="email"
               value={email}
@@ -139,12 +232,12 @@ export default function AdminLoginPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setStep("email"); setCode(""); }}
+              onClick={() => { setStep("form"); setCode(""); }}
               className="mt-3 inline-flex h-11 w-full items-center justify-center rounded border 
                          border-[var(--line)] bg-white px-6 font-bold text-[var(--brand-navy)] 
                          transition hover:border-[var(--brand-navy)]"
             >
-              重新输入邮箱
+              重新发送
             </button>
           </>
         )}
