@@ -64,6 +64,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // Login page: render without sidebar
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-[var(--paper)]">
       <div className="brand-stripe" aria-hidden="true" />
